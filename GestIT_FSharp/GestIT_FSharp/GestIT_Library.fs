@@ -16,7 +16,7 @@ type private IgnoreMeTwice () =
 /// </summary>
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-type ISensor<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs =
+type ISensor<'T,'U> when 'U :> System.EventArgs =
   abstract Item : 'T -> IEvent<'U> with get
 
 /// <summary>
@@ -31,7 +31,7 @@ type Token = obj
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
 [<AbstractClass>]
-type GestureNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs () =
+type GestureNet<'T,'U> when 'U :> System.EventArgs () =
   let completionEvent = new Event<'T * 'U * seq<Token>>()
   member this.Completed(f,e,t) = completionEvent.Trigger(f,e,t)
   member this.Completion = completionEvent.Publish
@@ -48,7 +48,7 @@ type GestureNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs () =
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
 [<AbstractClass>]
-type GestureExpr<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs () =
+type GestureExpr<'T,'U> when 'U :> System.EventArgs () =
   let gestureEvent = new Event<_>()
   member this.Gestured(f,e) = gestureEvent.Trigger(this, f, e)
   [<CLIEvent>]
@@ -84,7 +84,7 @@ type Predicate<'U> = delegate of 'U -> bool
 /// </summary>
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-type GroundTerm<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (f:'T, ?p:Predicate<'U>) =
+type GroundTerm<'T,'U> when 'U :> System.EventArgs (f:'T, ?p:Predicate<'U>) =
   inherit GestureExpr<'T,'U>()
   /// <summary>
   /// Assigns a feature and a function that will be the Predicate.
@@ -107,7 +107,7 @@ type GroundTerm<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (f:'T, 
   override this.ToNet(s) = new GroundTermNet<_,_>(this, s) :> GestureNet<_,_>
   override this.Children = Seq.empty
 
-and private GroundTermNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (exp:GroundTerm<'T,'U>, sensor:ISensor<'T,'U>) as this =
+and private GroundTermNet<'T,'U> when 'U :> System.EventArgs (exp:GroundTerm<'T,'U>, sensor:ISensor<'T,'U>) as this =
   inherit GestureNet<'T,'U>()
 
   let mutable tokens = new System.Collections.Generic.HashSet<Token>()
@@ -150,7 +150,7 @@ and private GroundTermNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventAr
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
 [<AbstractClass>]
-type private OperatorNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System.ParamArray>] subnets:GestureNet<'T,'U>[]) =
+type private OperatorNet<'T,'U> when 'U :> System.EventArgs ([<System.ParamArray>] subnets:GestureNet<'T,'U>[]) =
   inherit GestureNet<'T,'U>()
 
   override this.AddTokens(ts) =
@@ -170,7 +170,7 @@ type private OperatorNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventArg
 /// </summary>
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-type Sequence<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System.ParamArray>] subexprs:GestureExpr<'T,'U>[]) =
+type Sequence<'T,'U> when 'U :> System.EventArgs ([<System.ParamArray>] subexprs:GestureExpr<'T,'U>[]) =
   inherit GestureExpr<'T,'U>()
 
   /// </member>
@@ -203,7 +203,7 @@ type Sequence<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System
 /// </summary>
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-type Parallel<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System.ParamArray>] subexprs:GestureExpr<'T,'U>[]) =
+type Parallel<'T,'U> when 'U :> System.EventArgs ([<System.ParamArray>] subexprs:GestureExpr<'T,'U>[]) =
   inherit GestureExpr<'T,'U>()
 
   /// </member>
@@ -248,7 +248,7 @@ type Parallel<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System
 /// </summary>
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-type Choice<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System.ParamArray>] subexprs:GestureExpr<'T,'U>[]) =
+type Choice<'T,'U> when 'U :> System.EventArgs ([<System.ParamArray>] subexprs:GestureExpr<'T,'U>[]) =
   inherit GestureExpr<'T,'U>()
 
   /// </member>
@@ -284,7 +284,7 @@ type Choice<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System.P
 /// </summary>
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-type Iter<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (x:GestureExpr<'T,'U>) =
+type Iter<'T,'U> when 'U :> System.EventArgs (x:GestureExpr<'T,'U>) =
   inherit GestureExpr<'T,'U>()
 
   /// </member>
