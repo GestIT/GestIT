@@ -12,25 +12,6 @@ type private IgnoreMeTwice () =
   end
 
 /// <summary>
-/// It represents the model of a tipical event coming from a sensor.
-/// </summary>
-/// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
-/// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-type SensorEventArgs<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (t:'T, e:'U) =
-  inherit System.EventArgs()
-
-  /// </member>
-  /// <member name="M:GestIT.SensorEventArgs`2.#ctor(`0,`1)">
-  /// <summary>
-  /// Assigns feature and event.
-  /// </summary>
-  /// <param name="t">Feature.</param>
-  /// <param name="e">Event.</param>
-  member private x.IgnoreMe() = ()
-  member x.FeatureType = t
-  member x.Event = e
-
-/// <summary>
 /// Generic sensor interface, to be implemented for publishing events.
 /// </summary>
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
@@ -51,8 +32,8 @@ type Token = obj
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
 [<AbstractClass>]
 type GestureNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs () =
-  let completionEvent = new Event<SensorEventArgs<'T,'U> * seq<Token>>()
-  member this.Completed(e,t) = completionEvent.Trigger(e,t)
+  let completionEvent = new Event<'T * 'U * seq<Token>>()
+  member this.Completed(f,e,t) = completionEvent.Trigger(f,e,t)
   member this.Completion = completionEvent.Publish
   abstract member Front: GestureNet<'T,'U> list
   abstract member AddTokens: Token seq -> unit
@@ -69,7 +50,7 @@ type GestureNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs () =
 [<AbstractClass>]
 type GestureExpr<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs () =
   let gestureEvent = new Event<_>()
-  member this.Gestured(e) = gestureEvent.Trigger(this, e)
+  member this.Gestured(f,e) = gestureEvent.Trigger(this, f, e)
   [<CLIEvent>]
   member this.Gesture = gestureEvent.Publish
 
@@ -77,7 +58,7 @@ type GestureExpr<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs () =
   abstract member ToNet: ISensor<'T,'U> -> GestureNet<'T,'U>
   member this.ToInternalGestureNet(s) =
     let net = this.ToNet(s)
-    net.Completion.Add(fun (e,ts) -> this.Gestured(e))
+    net.Completion.Add(fun (f,e,ts) -> this.Gestured(f,e))
     net
   /// <summary>
   /// It permits to relate Petri Net with the sensor. It is necessary in order to recognize the gesture.
@@ -140,7 +121,7 @@ and private GroundTermNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventAr
     if p then
       let oldtokens = tokens
       this.ClearTokens()
-      this.Completed(new SensorEventArgs<_,_>(exp.Feature,event),oldtokens)
+      this.Completed(exp.Feature, event, oldtokens)
 
   override this.Front = [this]
 
@@ -213,7 +194,7 @@ type Sequence<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System
                 override this.Front = subnets.[0].Front
                 } :> GestureNet<_,_>
     for i = 0 to subnets.Length - 2 do
-      subnets.[i].Completion.Add(fun (e,ts) -> subnets.[i+1].AddTokens(ts))
+      subnets.[i].Completion.Add(fun (f,e,ts) -> subnets.[i+1].AddTokens(ts))
     subnets.[subnets.Length-1].Completion.Add(net.Completed)
     net
 
@@ -246,7 +227,7 @@ type Parallel<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System
                 override this.Front = subnets |> Seq.map (fun x -> x.Front) |> List.concat
               } :> GestureNet<_,_>
     let completed = new System.Collections.Generic.Dictionary<Token,int>()
-    let mycb (e,ts) =
+    let mycb (f,e,ts) =
       let mutable comp = []
       for t in ts do
         let found,count = completed.TryGetValue(t)
@@ -257,7 +238,7 @@ type Parallel<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System
         else
           completed.[t] <- count
       if comp <> [] then
-        net.Completed(e,comp)
+        net.Completed(f,e,comp)
     for n in subnets do
       n.Completion.Add(mycb)
     net
@@ -291,11 +272,11 @@ type Choice<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs ([<System.P
                 override this.Front = subnets |> Seq.map (fun x -> x.Front) |> List.concat
                 } :> GestureNet<_,_>
     for n in subnets do
-      n.Completion.Add(fun (e,ts) ->
+      n.Completion.Add(fun (f,e,ts) ->
                        for othern in subnets do
                          if othern <> n then
                            othern.RemoveTokens(ts)
-                       net.Completed(e,ts))
+                       net.Completed(f,e,ts))
     net
 
 /// <summary>
@@ -326,7 +307,7 @@ type Iter<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (x:GestureExp
     let net = { new OperatorNet<_,_>(subnet) with
                 override this.Front = subnet.Front
                 } :> GestureNet<_,_>
-    subnet.Completion.Add(fun (e,ts) ->
+    subnet.Completion.Add(fun (f,e,ts) ->
                           subnet.AddTokens(ts)
-                          this.Gestured(e))
+                          this.Gestured(f,e))
     net
