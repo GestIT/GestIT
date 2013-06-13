@@ -36,8 +36,7 @@ type SensorEventArgs<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (t
 /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
 /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
 type ISensor<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs =
-  [<CLIEvent>]
-  abstract member SensorEvents: IEvent<SensorEventArgs<'T,'U>>
+  abstract Item : 'T -> IEvent<'U> with get
 
 /// <summary>
 /// Generic type representing a Petri's Net token.
@@ -133,16 +132,15 @@ and private GroundTermNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventAr
   let mutable tokens = new System.Collections.Generic.HashSet<Token>()
   let mutable handler:System.IDisposable = null
 
-  let handle (event:SensorEventArgs<'T,'U>) =
-    if (exp.Feature :> System.Enum).Equals(event.FeatureType) then
-      let p =
-        match exp.Predicate with
-          | None -> true
-          | Some d -> d.Invoke(event.Event)
-      if p then
-        let oldtokens = tokens
-        this.ClearTokens()
-        this.Completed(event,oldtokens)
+  let handle (event:'U) =
+    let p =
+      match exp.Predicate with
+        | None -> true
+        | Some d -> d.Invoke(event)
+    if p then
+      let oldtokens = tokens
+      this.ClearTokens()
+      this.Completed(new SensorEventArgs<_,_>(exp.Feature,event),oldtokens)
 
   override this.Front = [this]
 
@@ -150,7 +148,7 @@ and private GroundTermNet<'T,'U> when 'T :> System.Enum and 'U :> System.EventAr
     for t in ts do
       tokens.Add(t) |> ignore
     if handler = null then
-      handler <- sensor.SensorEvents.Subscribe(handle)
+      handler <- sensor.[exp.Feature].Subscribe(handle)
 
   override this.RemoveTokens(ts) =
     for t in ts do
