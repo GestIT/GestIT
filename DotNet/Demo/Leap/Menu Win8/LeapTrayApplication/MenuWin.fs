@@ -264,7 +264,7 @@ module MenuWin8
 //        let s22 = new Sequence<_,_>(s2, ch3)
 //        let net222 = s22.ToGestureNet(s)
 
-        let expr = (closedhand2 |>> openedhand2) |>> ( ((!* movedfingerleft) |?| (!* movedfingerright) |?| (!* movedfingerup) |?| (!* movedfingerdown)) |?| (pushedhanddown |?| (closedhand2 |>> keepclosedhand)) )
+        let expr = (closedhand2 |>> openedhand2) |>> ( ((!* movedfingerleft) |^| (!* movedfingerright) |^| (!* movedfingerup) |^| (!* movedfingerdown)) |^| (pushedhanddown |^| (closedhand2 |>> keepclosedhand)) )
         let exprnet = expr.ToGestureNet(s)
 
         let par = new Parallel<_,_>(movedhandleft, movedhandright)
@@ -317,16 +317,16 @@ module MenuWin8
         override x.OnLoad(e:System.EventArgs) =
             x.Visible <- false
             trayIcon.Visible <- true
-            x.ShowInTaskbar <- false; // Remove from taskbar.
-            (s :> ISensor<_,_>).SensorEvents.Add(fun e ->
+            x.ShowInTaskbar <- false // Remove from taskbar.
+            let handler = fun ft, e ->
 //                if f <> null then formatter.Serialize(f, (System.DateTime.Now, e.FeatureType, e.Event))
                 (* Removing too old frames *)
-                let t = e.Event.Frame.Timestamp
+                let t = e.Frame.Timestamp
                 while (frameQueue.Count > 0 && (t - frameQueue.Peek().Timestamp > (int64)250000)) do
                     frameQueue.Dequeue() |> ignore
                 (* Receiving updates from sensor *)
-                let f = e.Event.Frame
-                let id = e.Event.Id
+                let f = e.Frame
+                let id = e.Id
                 if lastFrameInQueue.Timestamp <> f.Timestamp then
                     (* in this case, surely lastFrame.TS < f.TS, so it has to be added to the queue *)
                     let newFrame = f.Clone()
@@ -335,7 +335,8 @@ module MenuWin8
                 else
                     (* update frame informations *)
                     UpdateInformations(f, e.FeatureType, id)
-            )
+            
+            (s :> ISensor<_,_>).Items.[LeapFeatureTypes].Add(handler)
             let initializeTrashes =
                 threshpointfingerup <- thresh                
                 threshpointfingerdown <- thresh
@@ -343,42 +344,42 @@ module MenuWin8
                 threshpointfingerright <- thresh
 
             (closedhand2 |>> keepclosedhand).Gesture.Add(fun _ -> SendKeys.SendWait("{ESC}")) // close menu
-            openedhand1.Gesture.Add(fun (sender,e) -> ts_openedhand := e.Event.Frame.Timestamp)
-            closedhand2.Gesture.Add(fun (sender,e) -> ts_closedhand := e.Event.Frame.Timestamp)
-            (closedhand2 |>> openedhand2).Gesture.Add(fun (sender,e) -> Debug.WriteLine("TS menu: {0}", e.Event.Frame.Timestamp); SendKeys.SendWait("^{ESC}")) // open menu
-            (!* movedfingerright).Gesture.Add(fun (sender,e) -> threshpointfingerdown <- thresh
-                                                                threshpointfingerleft <- thresh
-                                                                threshpointfingerup <- thresh
-                                                                let t = threshpointfingerright - 30000L
-                                                                if t > 0L then
+            openedhand1.Gesture.Add(fun (sender,f,e) -> ts_openedhand := e.Frame.Timestamp)
+            closedhand2.Gesture.Add(fun (sender,f,e) -> ts_closedhand := e.Frame.Timestamp)
+            (closedhand2 |>> openedhand2).Gesture.Add(fun (sender,f,e) -> Debug.WriteLine("TS menu: {0}", e.Frame.Timestamp); SendKeys.SendWait("^{ESC}")) // open menu
+            (!* movedfingerright).Gesture.Add(fun (sender,f,e) -> threshpointfingerdown <- thresh
+                                                                  threshpointfingerleft <- thresh
+                                                                  threshpointfingerup <- thresh
+                                                                  let t = threshpointfingerright - 30000L
+                                                                  if t > 0L then
                                                                     threshpointfingerright <- t;
-                                                                lastFingerRight <- e.Event.Frame.Timestamp
-                                                                SendKeys.SendWait("{RIGHT 1}"))
-            (!* movedfingerleft).Gesture.Add(fun (sender,e) ->  threshpointfingerdown <- thresh
-                                                                threshpointfingerright <- thresh
-                                                                threshpointfingerup <- thresh
-                                                                let t = threshpointfingerleft - 30000L
-                                                                if t > 0L then threshpointfingerleft <- t;
-                                                                lastFingerLeft <- e.Event.Frame.Timestamp
-                                                                SendKeys.SendWait("{LEFT 1}"))
-            (!* movedfingerup).Gesture.Add(fun (sender,e) -> threshpointfingerdown <- thresh
-                                                             threshpointfingerright <- thresh
-                                                             threshpointfingerleft <- thresh
-                                                             let t = threshpointfingerup - 30000L
-                                                             if t > 0L then threshpointfingerup <- t;
-                                                             lastFingerUp <- e.Event.Frame.Timestamp
-                                                             SendKeys.SendWait("{UP 1}"))
-            (!* movedfingerdown).Gesture.Add(fun (sender,e) ->  threshpointfingerleft <- thresh
-                                                                threshpointfingerright <- thresh
-                                                                threshpointfingerup <- thresh
-                                                                let t = threshpointfingerdown - 30000L
-                                                                if t > 0L then threshpointfingerdown <- t;
-                                                                lastFingerDown <- e.Event.Frame.Timestamp
-                                                                SendKeys.SendWait("{DOWN 1}"))
-            pushedhanddown.Gesture.Add(fun (sender,e) -> initializeTrashes
-                                                         Debug.WriteLine("PUSH!")
-                                                         lastEnter <- e.Event.Frame.Timestamp
-                                                         SendKeys.SendWait("{ENTER}"))
+                                                                  lastFingerRight <- e.Event.Frame.Timestamp
+                                                                  SendKeys.SendWait("{RIGHT 1}"))
+            (!* movedfingerleft).Gesture.Add(fun (sender,f,e) ->  threshpointfingerdown <- thresh
+                                                                  threshpointfingerright <- thresh
+                                                                  threshpointfingerup <- thresh
+                                                                  let t = threshpointfingerleft - 30000L
+                                                                  if t > 0L then threshpointfingerleft <- t;
+                                                                  lastFingerLeft <- e.Event.Frame.Timestamp
+                                                                  SendKeys.SendWait("{LEFT 1}"))
+            (!* movedfingerup).Gesture.Add(fun (sender,f,e) -> threshpointfingerdown <- thresh
+                                                               threshpointfingerright <- thresh
+                                                               threshpointfingerleft <- thresh
+                                                               let t = threshpointfingerup - 30000L
+                                                               if t > 0L then threshpointfingerup <- t;
+                                                               lastFingerUp <- e.Frame.Timestamp
+                                                               SendKeys.SendWait("{UP 1}"))
+            (!* movedfingerdown).Gesture.Add(fun (sender,f,e) ->  threshpointfingerleft <- thresh
+                                                                  threshpointfingerright <- thresh
+                                                                  threshpointfingerup <- thresh
+                                                                  let t = threshpointfingerdown - 30000L
+                                                                  if t > 0L then threshpointfingerdown <- t;
+                                                                  lastFingerDown <- e.Frame.Timestamp
+                                                                  SendKeys.SendWait("{DOWN 1}"))
+            pushedhanddown.Gesture.Add(fun (sender,f,e) -> initializeTrashes
+                                                           Debug.WriteLine("PUSH!")
+                                                           lastEnter <- e.Frame.Timestamp
+                                                           SendKeys.SendWait("{ENTER}"))
             trayIcon.MouseDoubleClick.Add(fun _ ->
                                             if x.Visible = true then
                                                 x.Visible <- false

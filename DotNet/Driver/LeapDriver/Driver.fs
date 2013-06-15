@@ -49,30 +49,30 @@ namespace LeapDriver
         | MouseUp = 1
         | MouseMove = 2
 
-    type MouseSensor () =
-        inherit UserControl()
-        let mutable down = false
-        let sensorEvent = new Event<SensorEventArgs<MouseFeatureTypes,MouseEventArgs>>()
-        let debug = false
-
-        override x.OnMouseDown(e) =
-            if debug then printfn "MOUSE DOWN"
-            sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseDown, e))
-            down <- true
-
-        override x.OnMouseUp(e) =
-            if debug then printfn "MOUSE UP"
-            sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseUp, e))
-            down <- false
-
-        override x.OnMouseMove(e) =
-            if down then
-                if debug then printfn "MOUSE MOVE"
-                sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseMove, e))
-
-        interface GestIT.ISensor<MouseFeatureTypes,MouseEventArgs> with
-            [<CLIEvent>]
-            member x.SensorEvents = sensorEvent.Publish
+//    type MouseSensor () =
+//        inherit UserControl()
+//        let mutable down = false
+//        let sensorEvent = new Event<SensorEventArgs<MouseFeatureTypes,MouseEventArgs>>()
+//        let debug = false
+//
+//        override x.OnMouseDown(e) =
+//            if debug then printfn "MOUSE DOWN"
+//            sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseDown, e))
+//            down <- true
+//
+//        override x.OnMouseUp(e) =
+//            if debug then printfn "MOUSE UP"
+//            sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseUp, e))
+//            down <- false
+//
+//        override x.OnMouseMove(e) =
+//            if down then
+//                if debug then printfn "MOUSE MOVE"
+//                sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseMove, e))
+//
+//        interface GestIT.ISensor<MouseFeatureTypes,MouseEventArgs> with
+//            [<CLIEvent>]
+//            member x.SensorEvents = sensorEvent.Publish
 
 (*
     type TouchFeatureTypes =
@@ -415,7 +415,7 @@ namespace LeapDriver
         let pointableCleaner = new ClonablePointableCleaner(state, handCleaner) :> IStateCleaner<_,_>
         let handCleaner = handCleaner :> IStateCleaner<_,_>
 
-        let sensorEvent = new Event<SensorEventArgs<LeapFeatureTypes, LeapEventArgs>>()
+        let sensorEvents = new System.Collections.Generic.Dictionary<_,_>()
 
         let formatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()
         let mutable outputStream : System.IO.Stream = null
@@ -424,6 +424,15 @@ namespace LeapDriver
         do
             ctrl.AddListener(this) |> ignore
             ctrl.SetPolicyFlags(Controller.PolicyFlag.POLICYBACKGROUNDFRAMES)
+            sensorEvents.Add(LeapFeatureTypes.ActiveFinger, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.ActiveHand, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.ActiveTool, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.MoveFinger, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.MoveHand, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.MoveTool, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.NotActiveFinger, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.NotActiveHand, new Event<LeapEventArgs>())
+            sensorEvents.Add(LeapFeatureTypes.NotActiveTool, new Event<LeapEventArgs>())
 
         member this.OutputStream
             with get() = outputStream
@@ -431,12 +440,11 @@ namespace LeapDriver
 
         member this.Controller = ctrl
         interface ISensor<LeapFeatureTypes,LeapEventArgs> with
-            [<CLIEvent>]
-            member x.SensorEvents = sensorEvent.Publish
+            member this.Item with get f = sensorEvents.[f].Publish
 
         member private this.MyTrigger t e =
             if this.OutputStream <> null then formatter.Serialize(this.OutputStream, (System.DateTime.Now, t, e)) 
-            sensorEvent.Trigger(new SensorEventArgs<_,_>(t, e))
+            sensorEvents.[t].Trigger(e)
 
         override this.OnInit(c:Controller) =
             if debugSensor then System.Diagnostics.Debug.WriteLine("OnInit")

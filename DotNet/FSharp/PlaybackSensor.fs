@@ -27,8 +27,8 @@ namespace GestIT
     /// </summary>
     /// <typeparam name="T">The generic 'T type is relative to the feature.</typeparam>
     /// <typeparam name="U">The generic 'U type is the information about the event itself.</typeparam>
-    type PlaybackSensor<'T, 'U> when 'T :> System.Enum and 'U :> System.EventArgs (s:Stream) =
-      let evt = new Event<SensorEventArgs<'T,'U>>()
+    type PlaybackSensor<'T, 'U> when 'T : equality and 'U :> System.EventArgs (s:Stream) =
+      let evts = new System.Collections.Generic.Dictionary<_,_>()
       let ser = new BinaryFormatter()
 
       /// <summary>
@@ -52,7 +52,8 @@ namespace GestIT
         let worker = new Thread(fun () -> 
           let (t, typ, ev) = readObj()
           let mutable lastTime = t
-          evt.Trigger(new SensorEventArgs<'T, 'U>(typ, ev))
+          if not(evts.ContainsKey(typ)) then evts.Add(typ, new Event<'U>())
+          evts.[typ].Trigger(ev)
 
           let mutable eof = false
           while not eof do
@@ -61,12 +62,14 @@ namespace GestIT
               let dt = (t - lastTime).TotalMilliseconds
               lastTime <- t
               if  dt > 5. then Thread.Sleep(int dt)
-              evt.Trigger(new SensorEventArgs<'T, 'U>(typ, ev))
+              evts.[typ].Trigger(ev)
             with _ -> eof <- true
         )
         worker.IsBackground <- true
         worker.Start()
 
       interface ISensor<'T,'U> with
-        [<CLIEvent>]
-        member x.SensorEvents = evt.Publish
+        member this.Item 
+          with get f = 
+                 if not(evts.ContainsKey(f)) then evts.Add(f, new Event<'U>())
+                 evts.[f].Publish

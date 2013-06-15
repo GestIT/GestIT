@@ -36,15 +36,11 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="GestIT_FSharp">
-      <HintPath>..\..\GestIT_FSharp\LeapDriver\bin\Debug\GestIT_FSharp.dll</HintPath>
+    <Reference Include="GestIT">
+      <HintPath>..\..\..\..\FSharp\bin\Debug\GestIT.dll</HintPath>
     </Reference>
-    <Reference Include="LeapCSharp.NET3.5">
-      <HintPath>..\..\..\..\..\Desktop\Leap_Developer_Kit_0.7.9_3460_Windows\LeapSDK\lib\LeapCSharp.NET3.5.dll</HintPath>
-    </Reference>
-    <Reference Include="LeapDriver">
-      <HintPath>..\..\GestIT_FSharp\LeapDriver\bin\Debug\LeapDriver.dll</HintPath>
-    </Reference>
+    <Reference Include="LeapCSharp.NET3.5" />
+    <Reference Include="LeapDriver" />
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
@@ -57,15 +53,8 @@
   <ItemGroup>
     <None Include="App.config" />
     <Compile Include="JetpackCommander.fs" />
-    <None Include="Leap.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="LeapCSharp.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Leapd.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Include="LeapCSharp.NET3.5.dll" />
+    <None Include="LeapDriver.dll" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

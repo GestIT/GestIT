@@ -20,11 +20,11 @@ module Program
                 |> Seq.maxBy (fun y -> y.Length)
             finger.Position.y >= 230.f
 
-    let movefingerGoUp_h (sender, e:SensorEventArgs<LeapFeatureTypes, LeapEventArgs>) =
+    let movefingerGoUp_h (s, f, e) =
         SendKeys.SendWait("{UP}")
 
-    let movefingerStay_h (sender, e:SensorEventArgs<LeapFeatureTypes, LeapEventArgs>) =
-        lastUp <- e.Event.Frame.Timestamp
+    let movefingerStay_h (_, _, e:LeapEventArgs) =
+        lastUp <- e.Frame.Timestamp
         SendKeys.SendWait("{UP}")
 
     let s = new LeapDriver.LeapSensor()

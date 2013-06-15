@@ -40,8 +40,11 @@
     <Compile Include="Driver.fs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="GestIT">
+      <HintPath>..\..\FSharp\bin\Debug\GestIT.dll</HintPath>
+    </Reference>
     <Reference Include="LeapCSharp.NET3.5">
-      <HintPath>..\..\..\..\..\Desktop\Leap_Developer_Kit_0.7.9_3460_Windows\LeapSDK\lib\LeapCSharp.NET3.5.dll</HintPath>
+      <HintPath>sdk\LeapSDK\lib\LeapCSharp.NET3.5.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
@@ -52,11 +55,6 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Windows.Forms" />
-    <ProjectReference Include="..\GestIT_FSharp\GestIT_FSharp.fsproj">
-      <Name>GestIT_FSharp</Name>
-      <Project>{75b1878d-0959-4351-9be5-775a7b1a1021}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

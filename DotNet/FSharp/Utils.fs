@@ -59,7 +59,14 @@ let (!*) (a:GestureExpr<'T, 'U>) =
 let (|>|) (a:GestureExpr<'T, 'U>) (b:GestureExpr<'T, 'U>) = a |^| b
 
 /// Defines the handler to assign |-> to the GestureExpr.
-let (|->) (a:GestureExpr<'T, 'U>) (evt:GestureExpr<'T, 'U>*SensorEventArgs<'T, 'U> -> unit) =
+let (|->) (a:GestureExpr<'T, 'U>) (evt:GestureExpr<'T, 'U>*'T*'U -> unit) =
   a.Gesture.Add(evt)
-  if not (registeredHandlers.ContainsKey(a)) then registeredHandlers.Add(a, true)
+  if not(registeredHandlers.ContainsKey(a)) then
+    registeredHandlers.Add(a, true)
   a
+
+type FusionSensor<'T,'U> when 'T : equality and 'U :> System.EventArgs () =
+  let items = new System.Collections.Generic.Dictionary<_,_>()
+  member this.Listen(f:'T, e:IEvent<'U>) = items.Add(f, e)
+  interface ISensor<'T,'U> with
+    member this.Item with get f = items.[f]

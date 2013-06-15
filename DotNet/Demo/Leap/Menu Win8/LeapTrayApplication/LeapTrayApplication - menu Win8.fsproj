@@ -42,25 +42,16 @@
   <ItemGroup>
     <None Include="App.config" />
     <Compile Include="MenuWin.fs" />
-    <None Include="LeapCSharp.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Leapd.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Leap.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="GestIT_FSharp">
-      <HintPath>..\..\GestIT_FSharp\LeapDriver\bin\Debug\GestIT_FSharp.dll</HintPath>
+    <Reference Include="GestIT">
+      <HintPath>..\..\..\..\Driver\LeapDriver\bin\Debug\GestIT.dll</HintPath>
     </Reference>
     <Reference Include="LeapCSharp.NET3.5">
-      <HintPath>..\..\..\..\..\Desktop\Leap_Developer_Kit_0.7.9_3460_Windows\LeapSDK\lib\LeapCSharp.NET3.5.dll</HintPath>
+      <HintPath>..\..\..\..\Driver\LeapDriver\bin\Debug\LeapCSharp.NET3.5.dll</HintPath>
     </Reference>
     <Reference Include="LeapDriver">
-      <HintPath>..\..\GestIT_FSharp\LeapDriver\bin\Debug\LeapDriver.dll</HintPath>
+      <HintPath>..\..\..\..\Driver\LeapDriver\bin\Debug\LeapDriver.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">

@@ -8,7 +8,7 @@
     <ProjectGuid>75b1878d-0959-4351-9be5-775a7b1a1021</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>GestIT_FSharp</RootNamespace>
-    <AssemblyName>GestIT_FSharp</AssemblyName>
+    <AssemblyName>GestIT</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <Name>GestIT_FSharp</Name>
     <TargetFrameworkProfile />
