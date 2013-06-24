@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="../lib/GestIT.js"></script>
+<script type="text/javascript">
+
+var Mouse = {
+  down: 0,
+  up: 1,
+  move: 2
+};
+
+function print(s) {
+  document.getElementById('console').innerHTML += s + '<br/>';
+}
+
+function init() {
+  var d = document.getElementById('surface');
+  d.sensorEvents = new Event();
+  
+  d.onmousedown = function (e) { 
+    d.sensorEvents.trigger(d, { featureType: Mouse.down, event: e }); 
+  };
+  d.onmouseup = function (e) { d.sensorEvents.trigger(d, { featureType: Mouse.up, event: e }); };
+  d.onmousemove = function (e) { 
+    d.sensorEvents.trigger(d, { featureType: Mouse.move, event: e }); 
+  };
+
+  var md = new GroundTerm(Mouse.down, function () { return true; });
+  var mm = new GroundTerm(Mouse.move, function () { return true; });
+  var mu = new GroundTerm(Mouse.up, function () { return true; });
+  
+  md.gesture.add(function () { print('Mouse down!'); });
+  mm.gesture.add(function () { print('Mouse move!'); });
+  mu.gesture.add(function () { print('Mouse up!'); });
+  var gesture = new Choice([new Sequence([md, new Iter(mm)]), mu]);
+  var n = gesture.toGestureNet(d);
+  
+}
+</script>
+</head>
+<body onload="init()">
+<div id="surface" style="width: 500px; height: 500px; background: yellow" >
+</div>
+<div id="console" style="width: 500px; height: 500px; overflow: auto; color: white; background: black">
+</div>
+</body>
+</html>

@@ -3,13 +3,24 @@ function SensorEventArgs(feature, evt) {
   this.event = e;
 }
 
+function arrayRemove(a, e) {
+  var idx = a.indexOf(e);
+  var ret = idx == -1 ? a : new Array();
+  if (idx > -1) {
+    for (var i = 0; i < a.length; i++)
+      if (i != idx) ret.push(a[i]);
+  }
+  return ret;
+}
+
 function Event() {
   var listeners = new Array();
-  this.add = function(listener) { listeners.add(listener); };
-  this.remove = function(listener) { listeners.remove(listener); }; // FIXME
+  this.add = function(listener) { var o = { f: listener }; listeners = listeners.slice(0, listeners.length); listeners.push(o); return o; };
+  this.remove = function(listener) { listeners = arrayRemove(listeners, listener); };
   this.trigger = function(sender, evt) {
-    for (var i = 0; i < listeners.length; i++)
-      listeners[i](sender, evt);
+    var oldlisteners = listeners;
+    for (var i = 0; i < oldlisteners.length; i++)
+      oldlisteners[i].f(evt);
   }
   this.publish = this;
 }
@@ -22,25 +33,37 @@ function Token() {
 }
 
 function GestureNet() {
-  var completionEvent = new Event();
-  this.completed = function (e, t) { completionEvent.trigger(this, { 'evt': e, 'tokens': t}); };
-  this.completion = completionEvent.publish;
+  this.completed = null;
+  this.completion = null;
+  this._init = function () {
+    var o = this;
+    var completionEvent = new Event();
+    this.completion = completionEvent.publish;
+    this.completed = function (e, t) { completionEvent.trigger(o, { 'evt': e, 'tokens': t}); };
+    this.dispose = function () { o.clearTokens(); };
+  }
   this.front = function () { return new Array(); };
   this.addTokens = function (tokens) { };
   this.removeTokens = function (tokens) { };
   this.clearTokens = function () {};
-  this.dispose = function () { this.clearTokens(); };
+  this.dispose = null;
 }
 
 function GestureExpr() {
-  var gestureEvent = new Event();
-  this.gestured = function (e) { gestureEvent.trigger(this, e); }
-  this.gesture = gestureEvent.publish;
+  this.gestured = null;
+  this.gesture = null;
   this.children = new Array();
+  this._init = function () {
+    var o = this;
+    var gestureEvent = new Event();
+    this.gestured = function (e) { gestureEvent.trigger(o, e); }
+    this.gesture = gestureEvent.publish;
+  }
   this.toNet = function (s) { return null; };
   this.toInternalGestureNet = function (s) {
+    var o = this;
     var net = this.toNet(s);
-    net.completion.add(function (e) { this.gestured(e.evt); });
+    net.completion.add(function (e) { o.gestured(e.evt); });
     return net;
   };
   this.toGestureNet = function (s) {
@@ -54,38 +77,41 @@ function GestureExpr() {
 }
 
 function GroundTerm(f, p) {
-  this.prototype = new GestureExpr();
+  var o = this;
+  this._init();
   this.feature = f;
   this.predicate = p;
   
-  this.toNet = function (s) { return new GroundTermNet(this, s); };
+  this.toNet = function (s) { return new GroundTermNet(o, s); };
   this.children = [];
 }
+GroundTerm.prototype = new GestureExpr();
 
 function GroundTermNet(exp, sensor) {
-  this.prototype = new GestureNet();
+  var o = this;
+  this._init();
   var tokens = new Array();
   var handler = null;
   var handle = function(event) {
     if (exp.feature == event.featureType) {
-      if (!exp.predicate || predicate(event.event)) {
+      if (!exp.predicate || exp.predicate(event.event)) {
         var oldtokens = tokens;
-        this.clearTokens();
-        this.completed(event, oldtokens);
+        o.clearTokens();
+        o.completed(event, oldtokens);
       }
     }
   };
-  this.front = function () { return [ this ]; };
+  this.front = function () { return [ o ]; };
   this.addTokens = function (ts) {
-    for (var i = 0; i < ts; i++)
+    for (var i = 0; i < ts.length; i++)
       tokens.push(ts[i]);
-    sensor.sensorEvents.add(handle);
-    handler = handle;
+    if (handler == null)
+      handler = sensor.sensorEvents.add(handle);
   };
   this.removeTokens = function(ts) {
-    for (var i = 0; i < ts; i++)
-      tokens.remove(ts[i]);  // FIXME
-    if (tokens.length == 0) this.clearTokens();
+    for (var i = 0; i < ts.length; i++)
+      tokens = arrayRemove(tokens, ts[i]);
+    if (tokens.length == 0) o.clearTokens();
   };
   this.clearTokens = function() {
     tokens = new Array();
@@ -95,26 +121,31 @@ function GroundTermNet(exp, sensor) {
     }
   };
 }
+GroundTermNet.prototype = new GestureNet();
 
 function OperatorNet(subnets) {
-  this.prototype = new GestureNet();
+  var o = this;
+  this._init();
+  var fronteer = null;
   this.addTokens = function (ts) {
-    var f = this.front();
+    if (fronteer == null) fronteer = o.front();
+    var f = fronteer;
     for (var i = 0; i < f.length; i++)
       f[i].addTokens(ts);
   };
-  this.removeTokens = funtion (ts) {
-    for (var i = 0; i < subnets; i++)
+  this.removeTokens = function (ts) {
+    for (var i = 0; i < subnets.length; i++)
       subnets[i].removeTokens(ts);
   };
-  this.clearTokens = funtion () {
-    for (var i = 0; i < subnets; i++)
+  this.clearTokens = function () {
+    for (var i = 0; i < subnets.length; i++)
       subnets[i].clearTokens(ts);
   };
 }
+OperatorNet.prototype = new GestureNet();
 
 function Sequence(subexprs) {
-  this.prototype = new GestureExpr();
+  this._init();
   this.children = subexprs;
   
   this.toNet = function(s) {
@@ -127,15 +158,23 @@ function Sequence(subexprs) {
     return net;
   };
 }
+Sequence.prototype = new GestureExpr();
 
 function Parallel(subexprs) {
-  this.prototype = new GestureExpr();
+  this._init();
   this.children = subexprs;
 
   this.toNet = function (s) {
     var subnets = subexprs.map(function (x) { return x.toInternalGestureNet(s); });
     var net = new OperatorNet(subnets);
-    net.front = subnets.map(function (x) { return x.front; });
+    net.front = function () { 
+      var fs = subnets.map(function (x) { return x.front(); });
+      var ret = new Array();
+      for (var i = 0; i < fs.length; i++)
+        for (var j = 0; j < fs[i].length; j++)
+          ret.push(fs[i][j]);
+      return ret;
+    };
     var completed = {};
     var mycb = function (e) {
       var comp = new Array();
@@ -158,16 +197,24 @@ function Parallel(subexprs) {
     return net;
   };
 }
+Parallel.prototype = new GestureExpr();
 
 function Choice(subexprs) {
-  this.prototype = new GestureExpr();
+  this._init();
   this.children = subexprs;
   this.toNet = function (s) {
     var subnets = subexprs.map(function (x) { return x.toInternalGestureNet(s); });
     var net = new OperatorNet(subnets);
-    net.front = subnets.map(function (x) { return x.front; });
+    net.front = function () { 
+      var fs = subnets.map(function (x) { return x.front(); });
+      var ret = new Array();
+      for (var i = 0; i < fs.length; i++)
+        for (var j = 0; j < fs[i].length; j++)
+          ret.push(fs[i][j]);
+      return ret;
+    };
     for (var i = 0; i < subnets.length; i++) {
-      subnets[i].completion((function (n) { function (e) {
+      subnets[i].completion.add((function (n) { return function (e) {
         for (var i = 0; i < subnets.length; i++)
           if (i != n) subnets[i].removeTokens(e.tokens);
         net.completed(e);
@@ -176,18 +223,21 @@ function Choice(subexprs) {
     return net;
   };  
 }
+Choice.prototype = new GestureExpr();
 
 function Iter(x) {
-  this.prototype = new GestureExpr();
+  var o = this;
+  this._init();
   this.children = [ x ];
   this.toNet = function (s) {
     var subnet = x.toInternalGestureNet(s);
-    var net = new OperatorNet(subnets);
-    this.front = subnet.front;
+    var net = new OperatorNet([subnet]);
+    net.front = subnet.front;
     subnet.completion.add(function (e) {
       subnet.addTokens(e.tokens);
-      this.gestured(e.evt);
+      o.gestured(e.evt);
     });
     return net;
   };
 }
+Iter.prototype = new GestureExpr();
