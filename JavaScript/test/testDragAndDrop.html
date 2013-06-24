@@ -11,7 +11,21 @@ var Mouse = {
 };
 
 function print(s) {
-  document.getElementById('console').innerHTML += s + '<br/>';
+  var console = document.getElementById('console');
+  console.innerHTML += s + '<br/>';
+  console.scrollTop = console.scrollHeight;
+}
+
+var gesture = null;
+var net = null;
+
+function listen(cb) {
+  if (net != null) net.dispose();
+  if (cb.checked) {
+    net = gesture.toGestureNet(document.getElementById('surface'));
+  } else {
+    net = null;
+  }
 }
 
 function init() {
@@ -33,16 +47,16 @@ function init() {
   md.gesture.add(function () { print('Mouse down!'); });
   mm.gesture.add(function () { print('Mouse move!'); });
   mu.gesture.add(function () { print('Mouse up!'); });
-  var gesture = new Choice([new Sequence([md, new Iter(mm)]), mu]);
-  var n = gesture.toGestureNet(d);
-  
+  gesture = new Choice([new Sequence([md, new Iter(mm)]), mu]);
+  net = gesture.toGestureNet(d);
 }
 </script>
 </head>
 <body onload="init()">
-<div id="surface" style="width: 500px; height: 500px; background: yellow" >
+<input type="checkbox" checked="true" onchange="listen(this)"> listen;
+<div id="surface" style="height: 500px; background: yellow" >
 </div>
-<div id="console" style="width: 500px; height: 500px; overflow: auto; color: white; background: black">
+<div id="console" style="height: 500px; overflow: auto; color: white; background: black">
 </div>
 </body>
 </html>

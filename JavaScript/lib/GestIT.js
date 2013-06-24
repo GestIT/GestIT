@@ -139,7 +139,7 @@ function OperatorNet(subnets) {
   };
   this.clearTokens = function () {
     for (var i = 0; i < subnets.length; i++)
-      subnets[i].clearTokens(ts);
+      subnets[i].clearTokens();
   };
 }
 OperatorNet.prototype = new GestureNet();
