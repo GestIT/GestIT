@@ -30,25 +30,20 @@ function listen(cb) {
 
 function init() {
   var d = document.getElementById('surface');
-  d.sensorEvents = new Event();
+  d.sensor = new FusionSensor();
+  d.sensor.listen(d, Mouse.down, 'onmousedown');
+  d.sensor.listen(d, Mouse.up, 'onmouseup');
+  d.sensor.listen(d, Mouse.move, 'onmousemove');
   
-  d.onmousedown = function (e) { 
-    d.sensorEvents.trigger(d, { featureType: Mouse.down, event: e }); 
-  };
-  d.onmouseup = function (e) { d.sensorEvents.trigger(d, { featureType: Mouse.up, event: e }); };
-  d.onmousemove = function (e) { 
-    d.sensorEvents.trigger(d, { featureType: Mouse.move, event: e }); 
-  };
-
   var md = new GroundTerm(Mouse.down, function () { return true; });
   var mm = new GroundTerm(Mouse.move, function () { return true; });
   var mu = new GroundTerm(Mouse.up, function () { return true; });
   
-  md.gesture.add(function () { print('Mouse down!'); });
+  md.gesture.add(function (e) { print('Mouse down @(' + e.evt.x + ', ' + e.evt.y + ')!'); });
   mm.gesture.add(function () { print('Mouse move!'); });
   mu.gesture.add(function () { print('Mouse up!'); });
   gesture = new Choice([new Sequence([md, new Iter(mm)]), mu]);
-  net = gesture.toGestureNet(d);
+  net = gesture.toGestureNet(d.sensor);
 }
 </script>
 </head>

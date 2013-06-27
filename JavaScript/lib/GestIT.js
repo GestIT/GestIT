@@ -1,8 +1,3 @@
-function SensorEventArgs(feature, evt) {
-  this.featureType = feature;
-  this.event = e;
-}
-
 function arrayRemove(a, e) {
   var idx = a.indexOf(e);
   var ret = idx == -1 ? a : new Array();
@@ -25,7 +20,9 @@ function Event() {
   this.publish = this;
 }
 
-var ISensorPrototype = { 'sensorEvents': null };
+// A Sensor is simply a map from features to events
+// we assume features can be used as keys in a JS object.
+var ISensorPrototype = { };
 
 var __tokenId = 0;
 function Token() {
@@ -39,7 +36,7 @@ function GestureNet() {
     var o = this;
     var completionEvent = new Event();
     this.completion = completionEvent.publish;
-    this.completed = function (e, t) { completionEvent.trigger(o, { 'evt': e, 'tokens': t}); };
+    this.completed = function (f, e, t) { completionEvent.trigger(o, { 'feature': f, 'evt': e, 'tokens': t}); };
     this.dispose = function () { o.clearTokens(); };
   }
   this.front = function () { return new Array(); };
@@ -63,7 +60,7 @@ function GestureExpr() {
   this.toInternalGestureNet = function (s) {
     var o = this;
     var net = this.toNet(s);
-    net.completion.add(function (e) { o.gestured(e.evt); });
+    net.completion.add(function (e) { o.gestured( { 'feature': e.feature, 'evt': e.evt }); });
     return net;
   };
   this.toGestureNet = function (s) {
@@ -93,12 +90,10 @@ function GroundTermNet(exp, sensor) {
   var tokens = new Array();
   var handler = null;
   var handle = function(event) {
-    if (exp.feature == event.featureType) {
-      if (!exp.predicate || exp.predicate(event.event)) {
-        var oldtokens = tokens;
-        o.clearTokens();
-        o.completed(event, oldtokens);
-      }
+    if (!exp.predicate || exp.predicate(event.event)) {
+      var oldtokens = tokens;
+      o.clearTokens();
+      o.completed(event.feature, event.event, oldtokens);
     }
   };
   this.front = function () { return [ o ]; };
@@ -106,7 +101,7 @@ function GroundTermNet(exp, sensor) {
     for (var i = 0; i < ts.length; i++)
       tokens.push(ts[i]);
     if (handler == null)
-      handler = sensor.sensorEvents.add(handle);
+      handler = sensor[exp.feature].add(handle);
   };
   this.removeTokens = function(ts) {
     for (var i = 0; i < ts.length; i++)
@@ -116,7 +111,7 @@ function GroundTermNet(exp, sensor) {
   this.clearTokens = function() {
     tokens = new Array();
     if (handler != null) {
-      sensor.sensorEvents.remove(handler);
+      sensor[exp.feature].remove(handler);
       handler = null;
     }
   };
@@ -190,7 +185,7 @@ function Parallel(subexprs) {
         }
       }
       if (comp.length)
-        net.completed({'evt': e.evt, 'tokens': comp });
+        net.completed({ 'feature': e.feature, 'evt': e.evt, 'tokens': comp });
     };
     for (var i = 0; i < subnets.length; i++)
       subnets[i].completion.add(mycb);
@@ -241,3 +236,14 @@ function Iter(x) {
   };
 }
 Iter.prototype = new GestureExpr();
+
+// Utils
+
+function FusionSensor()  {
+  this.listen = function (obj, feature, event) {
+    var o = this;
+    if (!o[feature])
+      o[feature] = new Event();
+    obj[event] = function (e) { o[feature].trigger(obj, { 'feature': feature, 'event': e }) };
+  };
+}
