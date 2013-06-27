@@ -20,7 +20,8 @@
     type KinectEventArgs(s:Skeleton) =
         inherit System.EventArgs()
         member this.SkeletonData = s
-    
+      
+   
     type MyInteractionClient() =
             interface IInteractionClient with 
                 member this.GetInteractionInfoAtLocation(skeletonTrackingId:int, handType:InteractionHandType, x:float, y:float) =
@@ -139,8 +140,6 @@
                         for hp in i.HandPointers do
                             if hp <> null then
                                 sensorEvents.[HandInteraction(hp.HandType, hp.HandEventType)].Trigger(new KinectEventArgs(lastSkeleton))
-
-                //(Array.toSeq userInfo) |> Seq.filter 
 
 
         member this.AllframeReady (e:AllFramesReadyEventArgs) = 
