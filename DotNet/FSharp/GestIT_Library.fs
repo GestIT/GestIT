@@ -222,11 +222,15 @@ type Parallel<'T,'U> when 'U :> System.EventArgs ([<System.ParamArray>] subexprs
   /// <param name="s">.</param>
   /// <returns></returns>
   override this.ToNet(s) =
+    let completed = new System.Collections.Generic.Dictionary<_,_>()
     let subnets = subexprs |> Array.map (fun x -> x.ToInternalGestureNet(s))
     let net = { new OperatorNet<_,_>(subnets) with
                 override this.Front = subnets |> Seq.map (fun x -> x.Front) |> List.concat
+                override this.RemoveTokens(ts) =
+                  base.RemoveTokens(ts)
+                  for t in ts do
+                    completed.Remove(t) |> ignore
               } :> GestureNet<_,_>
-    let completed = new System.Collections.Generic.Dictionary<Token,int>()
     let mycb (f,e,ts) =
       let mutable comp = []
       for t in ts do
