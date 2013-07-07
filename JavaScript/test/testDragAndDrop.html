@@ -31,15 +31,15 @@ function listen(cb) {
 function init() {
   var d = document.getElementById('surface');
   d.sensor = new FusionSensor();
-  d.sensor.listen(d, Mouse.down, 'onmousedown');
-  d.sensor.listen(d, Mouse.up, 'onmouseup');
-  d.sensor.listen(d, Mouse.move, 'onmousemove');
+  d.sensor.listen(d, Mouse.down, 'mousedown');
+  d.sensor.listen(d, Mouse.up, 'mouseup');
+  d.sensor.listen(d, Mouse.move, 'mousemove');
   
   var md = new GroundTerm(Mouse.down, function () { return true; });
   var mm = new GroundTerm(Mouse.move, function () { return true; });
   var mu = new GroundTerm(Mouse.up, function () { return true; });
   
-  md.gesture.add(function (e) { print('Mouse down @(' + e.evt.x + ', ' + e.evt.y + ')!'); });
+  md.gesture.add(function (e) { print('Mouse down @(' + e.evt.layerX+ ', ' + e.evt.layerY + ')!'); });
   mm.gesture.add(function () { print('Mouse move!'); });
   mu.gesture.add(function () { print('Mouse up!'); });
   gesture = new Choice([new Sequence([md, new Iter(mm)]), mu]);

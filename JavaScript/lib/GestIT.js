@@ -160,6 +160,7 @@ function Parallel(subexprs) {
   this.children = subexprs;
 
   this.toNet = function (s) {
+    var completed = {};
     var subnets = subexprs.map(function (x) { return x.toInternalGestureNet(s); });
     var net = new OperatorNet(subnets);
     net.front = function () { 
@@ -170,7 +171,14 @@ function Parallel(subexprs) {
           ret.push(fs[i][j]);
       return ret;
     };
-    var completed = {};
+    var baseremove = net.removeTokens;
+    net.removeTokens = function (ts) {
+      baseremove(ts);
+      for (var i = 0; i < ts.length; i++) {
+        delete(completed[ts[i].id]);
+        if (completed[ts[i].id]) completed[ts[i].id] = null; // if delete misbehave
+      }
+    };
     var mycb = function (e) {
       var comp = new Array();
       var ts = e.tokens;
@@ -178,7 +186,8 @@ function Parallel(subexprs) {
         var t = ts[i];
         var count = 1 + (completed[t.id] ? completed[t.id] : 0);
         if (count == subnets.length) {
-          completed[t.id] = null;
+          delete(completed[t.id]);
+          if (completed[t.id]) completed[t.id] = null; // if delete misbehave
           comp.push(t);
         } else {
           completed[t.id] = count;
@@ -240,10 +249,28 @@ Iter.prototype = new GestureExpr();
 // Utils
 
 function FusionSensor()  {
-  this.listen = function (obj, feature, event) {
+  var events = new Array();
+  this.listen = function (obj, feature, event, filter) {
     var o = this;
     if (!o[feature])
       o[feature] = new Event();
-    obj[event] = function (e) { o[feature].trigger(obj, { 'feature': feature, 'event': e }) };
+    var r = { 'o': obj, 
+              'en': event, 
+              'e': 
+                (!filter ? function (e) { o[feature].trigger(obj, { 'feature': feature, 'event': e }) } :
+                          function (e) { 
+                            var evts = filter(e);
+                            for (var i = 0; i < evts.length; i++) {
+                              o[feature].trigger(obj, { 'feature': feature, 'event': evts[i] });
+                            }})
+              };
+    events.push(r);
+    obj.addEventListener(r.en, r.e, false);  
+  };
+  this.dispose = function () {
+    for (var i = 0; i < events.length; i++) {
+      var r = events[i];
+      r.o.removeEventListener(r.en, r.e, false);
+    }
   };
 }
