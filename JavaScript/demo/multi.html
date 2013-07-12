@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="../lib/GestIT.js"></script>
+<script type="text/javascript" src="../lib/GestITouch.js"></script>
+<script type="text/javascript">
+var points = {};
+
+var colors = [ 'red', 'black', 'orange', 'green', 'blue' ];
+var cw = 30;
+
+function draw() {
+  var c = document.getElementById('canvas');
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  var j = 0;
+  for (var k in points) {
+    var ps = points[k];
+    ctx.strokeStyle = colors[j++ % colors.length];
+    ctx.beginPath();
+    ctx.moveTo(ps[0].x, ps[0].y);
+    for (var i = 1; i < ps.length; i++) {
+      var p = ps[i];
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+}
+
+function init() {
+  var c = document.getElementById('canvas');
+  c.width = 1200;
+  c.height = 600;
+  var ts = listenTouch(c);
+  var td = new GroundTerm(TouchFeature.TouchDown, function () { return true; });
+  td.gesture.add(function (e) { points[e.evt.identifier] = [{ x: e.evt.clientX, y: e.evt.clientY }]; draw(); });
+  var net = multiseqnet(
+    td,
+    function (e) { return e.identifier; },
+    TouchFeature.TouchMove,
+    function (e) { points[e.evt.identifier].push({ x: e.evt.clientX, y: e.evt.clientY }); draw(); },
+    TouchFeature.TouchUp,
+    function (e) { delete points[e.evt.identifier]; draw(); },
+    ts
+  );
+}
+
+</script>
+</head>
+<body onload="init()">
+<canvas id="canvas" style="width: 1200px; height: 600px"></canvas>
+
+</body>
+</html>
