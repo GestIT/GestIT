@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="../lib/GestIT.js"></script>
+<script type="text/javascript" src="../lib/GestITouch.js"></script>
+<script type="text/javascript">
+var points = {};
+var pz = null;
+var timeout = null;
+
+function paint() {
+  var c = document.getElementById('canvas');
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#336699';
+  ctx.fillStyle = '#336699';
+  ctx.font = '128pt sans-serif';
+  var len = 0;
+  for (var k in points) {
+    var p = points[k];
+    ctx.beginPath();
+    ctx.moveTo(0, p.y);
+    ctx.lineTo(c.width, p.y);
+    ctx.moveTo(p.x, 0);
+    ctx.lineTo(p.x, c.height);
+    ctx.stroke();
+    len++;
+  }
+  var m = ctx.measureText('M').width;
+  var w = ctx.measureText(len).width;
+  ctx.fillText(len, (c.width - w) / 2, (c.height - m) / 2);
+  
+  if (pz != null) {
+    var p1 = pz.p1, p2 = pz.p2;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+  }
+}
+
+function draw() {
+  if (!timeout) timeout = setTimeout("paint(); timeout = null", 10);
+}
+
+function init() {
+  var c = document.getElementById('canvas');
+  var adjustSize = function () {
+    var w = window.innerWidth - 30, h = window.innerHeight - 30;
+    c.style.width = w;
+    c.style.height = h;
+    c.width =  w
+    c.height = h;
+  }
+  adjustSize();
+  document.body.onresize = function () { adjustSize(); }
+  var ts = listenTouch(c);
+  var td = new GroundTerm(TouchFeature.TouchDown, function () { return true; });
+  td.gesture.add(function (e) {
+    points[e.evt.identifier] = { x: e.evt.clientX, y: e.evt.clientY };
+    draw(); 
+  });
+  var net = multiseqnet(
+    td,
+    function (e) { return e.identifier; },
+    TouchFeature.TouchMove,
+    function (e) { var o = points[e.evt.identifier]; o.x = e.evt.clientX; o.y = e.evt.clientY; draw(); },
+    TouchFeature.TouchUp,
+    function (e) { 
+      delete points[e.evt.identifier]; draw(); 
+    },
+    ts
+  );
+  var pznet = pinchAndZoom(function (e) { pz = e; draw(); }, function (e) { pz = null; draw(); });
+  pznet.toGestureNet(ts);
+}
+
+</script>
+</head>
+<body onload="init()">
+<canvas id="canvas"></canvas>
+
+</body>
+</html>

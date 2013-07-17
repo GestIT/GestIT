@@ -107,7 +107,7 @@ function listenTouch(element) {
 }
 
 
-function multiseqnet(startterm, extractid, iterfeature, itercomplete, stopfeature, stopcomplete, sensor) {
+function multiseqnet(startterm, extractid, iterfeature, itercomplete, stopfeature, stopcomplete, sensor, stoplist) {
   var dragid = function (id) {
     var sameid = function (e) { return extractid(e) == id; };
     var tm = new GroundTerm(iterfeature, sameid);
@@ -119,6 +119,49 @@ function multiseqnet(startterm, extractid, iterfeature, itercomplete, stopfeatur
     drag.gesture.add(function (e) { net.dispose(); });
   };
 
-  startterm.gesture.add(function (e) { dragid(extractid(e.evt)); });
+  startterm.gesture.add(function (e) { if (!stoplist || stoplist.indexOf(e.evt.identifier) == -1) dragid(extractid(e.evt)); });
   return startterm.toGestureNet(sensor);
 }
+
+function pinchAndZoom(pzevt, pzendevt) {
+  var id1 = null, id2 = null;
+  var td1 = new GroundTerm(TouchFeature.TouchDown, function () { return id1 == null; });
+  var td2 = new GroundTerm(TouchFeature.TouchDown, function () { return id2 == null; });
+
+  var pts = {};
+  td1.gesture.add(function (e) { pts = {}; id1 = e.evt.identifier; pts[id1] = { x: e.evt.clientX, y: e.evt.clientY }; });
+  td2.gesture.add(function (e) { id2 = e.evt.identifier; pts[id2] = { x: e.evt.clientX, y: e.evt.clientY }; });
+    
+  var trigger = function () {
+    var e = {
+      p1: pts[id1],
+      p2: pts[id2],
+      angle: function () {  
+               var dx = this.p2.x - this.p1.x;
+               var dy = this.p2.y - this.p1.y;
+               return (dy ? Math.atan(dx / dy) : 0) + Math.PI / 2 + (dy > 0 ? -Math.PI : 0);
+             },
+      magnitude: function () {
+                   var dx = this.p2.x - this.p1.x;
+                   var dy = this.p2.y - this.p1.y;
+                   return Math.sqrt(dx*dx + dy*dy);
+                 }
+    };
+    pzevt(e);
+  };
+
+  var sameid1 = function (e) { return e.identifier == id1; };
+  var tm1 = new GroundTerm(TouchFeature.TouchMove, sameid1);
+  var tu1 = new GroundTerm(TouchFeature.TouchUp, sameid1);
+  var sameid2 = function (e) { return e.identifier == id2; };
+  var tm2 = new GroundTerm(TouchFeature.TouchMove, sameid2);
+  var tu2 = new GroundTerm(TouchFeature.TouchUp, sameid2);
+  
+  var start = new Sequence([ td1, td2, new Choice([ new Parallel([ new Iter(tm1), new Iter(tm2) ]), tu1, tu2]) ]);
+  tm1.gesture.add(function (e) { pts[id1] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; trigger(); });
+  tm2.gesture.add(function (e) { pts[id2] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; trigger(); });
+
+  start.gesture.add(function (e) { id1 = null; id2 = null; pzendevt() });
+  return start;
+}
+

@@ -5,11 +5,12 @@
 <script type="text/javascript" src="../lib/GestITouch.js"></script>
 <script type="text/javascript">
 var points = {};
+var timeout = null;
 
 var colors = [ 'red', 'black', 'orange', 'green', 'blue' ];
 var cw = 30;
 
-function draw() {
+function paint() {
   var c = document.getElementById('canvas');
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
@@ -27,10 +28,19 @@ function draw() {
   }
 }
 
+function draw() { if (!timeout) timeout = setTimeout('paint(); timeout = null', 10); }
+
 function init() {
   var c = document.getElementById('canvas');
-  c.width = 1200;
-  c.height = 600;
+  var adjustSize = function () {
+    var w = window.innerWidth - 30, h = window.innerHeight - 30;
+    c.style.width = w;
+    c.style.height = h;
+    c.width =  w
+    c.height = h;
+  }
+  adjustSize();
+  document.body.onresize = function () { adjustSize(); }
   var ts = listenTouch(c);
   var td = new GroundTerm(TouchFeature.TouchDown, function () { return true; });
   td.gesture.add(function (e) { points[e.evt.identifier] = [{ x: e.evt.clientX, y: e.evt.clientY }]; draw(); });
@@ -48,7 +58,7 @@ function init() {
 </script>
 </head>
 <body onload="init()">
-<canvas id="canvas" style="width: 1200px; height: 600px"></canvas>
+<canvas id="canvas"></canvas>
 
 </body>
 </html>

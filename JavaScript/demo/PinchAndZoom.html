@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="../lib/GestIT.js"></script>
+<script type="text/javascript" src="../lib/GestITouch.js"></script>
+<script type="text/javascript">
+var pz = null;
+var timeout = null;
+
+function paint() {
+  var c = document.getElementById('canvas');
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#336699';
+  ctx.font = '12pt sans-serif';
+  ctx.fillStyle = '#336699';
+  if (pz != null) {
+    var p1 = pz.p1, p2 = pz.p2;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+    var angle = Math.floor((pz.angle() * 180 / Math.PI)*100) / 100;
+    
+    ctx.fillText(angle, p1.x, p1.y + (p1.y > p2.y ? 50 : -50));
+    ctx.fillText(Math.floor(pz.magnitude() * 100) / 100, p1.x + (p2.x - p1.x) / 2, p1.y + (p2.y - p1.y) / 2);
+  }
+}
+
+function draw() {
+  if (!timeout) timeout = setTimeout("paint(); timeout = null", 10);
+}
+
+function init() {
+  var c = document.getElementById('canvas');
+  var adjustSize = function () {
+    var w = window.innerWidth - 30, h = window.innerHeight - 30;
+    c.style.width = w;
+    c.style.height = h;
+    c.width =  w
+    c.height = h;
+  }
+  adjustSize();
+  document.body.onresize = function () { adjustSize(); }
+  var ts = listenTouch(c);
+  var pznet = pinchAndZoom(function (e) { pz = e; draw(); }, function (e) { pz = null; draw(); });
+  pznet.toGestureNet(ts);
+}
+
+</script>
+</head>
+<body onload="init()">
+<canvas id="canvas"></canvas>
+
+</body>
+</html>
