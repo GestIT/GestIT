@@ -43,8 +43,7 @@ function init() {
   adjustSize();
   document.body.onresize = function () { adjustSize(); }
   var ts = listenTouch(c);
-  var pznet = pinchAndZoom(function (e) { pz = e; draw(); }, function (e) { pz = null; draw(); });
-  pznet.toGestureNet(ts);
+  var pznet = pinchAndZoom(function (e) { pz = e; draw(); }, function (e) { pz = null; draw(); }, ts);
 }
 
 </script>

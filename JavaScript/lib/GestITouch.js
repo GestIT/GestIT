@@ -109,28 +109,40 @@ function listenTouch(element) {
 
 function multiseqnet(startterm, extractid, iterfeature, itercomplete, stopfeature, stopcomplete, sensor, stoplist) {
   var dragid = function (id) {
-    var sameid = function (e) { return extractid(e) == id; };
-    var tm = new GroundTerm(iterfeature, sameid);
-    var tu = new GroundTerm(stopfeature, sameid);
-    var drag = new Choice([new Iter(tm), tu]);
+    var tm = new GroundTerm(iterfeature, function (e) { 
+      return extractid(e) == id && (!stoplist || stoplist.indexOf(id) == -1); });
+    var tu = new GroundTerm(stopfeature, function (e) { return extractid(e) == id });
+    var notm = new GroundTerm(iterfeature, function (e) { 
+      return extractid(e) == id && (!stoplist || stoplist.indexOf(id) != -1); });
+    var drag = new Choice([new Iter(tm), tu, notm]);
     tm.gesture.add(itercomplete);
     tu.gesture.add(stopcomplete);
     var net = drag.toGestureNet(sensor);
     drag.gesture.add(function (e) { net.dispose(); });
   };
 
-  startterm.gesture.add(function (e) { if (!stoplist || stoplist.indexOf(e.evt.identifier) == -1) dragid(extractid(e.evt)); });
+  startterm.gesture.add(function (e) { dragid(extractid(e.evt)); });
   return startterm.toGestureNet(sensor);
 }
 
-function pinchAndZoom(pzevt, pzendevt) {
+var clearPinchAndZoom = null;
+
+function pinchAndZoom(pzevt, pzendevt, sensor, timeout) {
   var id1 = null, id2 = null;
   var td1 = new GroundTerm(TouchFeature.TouchDown, function () { return id1 == null; });
-  var td2 = new GroundTerm(TouchFeature.TouchDown, function () { return id2 == null; });
+  var td2 = new GroundTerm(TouchFeature.TouchDown, function () { return id1 != null && id2 == null; });
+  var tout = new GroundTerm('Timer', function () { return true; });
+  tout.gesture.add(function () { id1 = null; id2 = null; });
 
   var pts = {};
-  td1.gesture.add(function (e) { pts = {}; id1 = e.evt.identifier; pts[id1] = { x: e.evt.clientX, y: e.evt.clientY }; });
-  td2.gesture.add(function (e) { id2 = e.evt.identifier; pts[id2] = { x: e.evt.clientX, y: e.evt.clientY }; });
+  var ttok = null;
+  td1.gesture.add(function (e) { 
+                    pts = {}; 
+                    id1 = e.evt.identifier;
+                    pts[id1] = { x: e.evt.clientX, y: e.evt.clientY }; 
+                    ttok = sensor.startTimeout('Timer', e, timeout ? timeout : 0.5); 
+                  });
+  td2.gesture.add(function (e) { if (ttok) sensor.clearTimeout(ttok); id2 = e.evt.identifier; pts[id2] = { x: e.evt.clientX, y: e.evt.clientY }; });
     
   var trigger = function () {
     var e = {
@@ -157,11 +169,10 @@ function pinchAndZoom(pzevt, pzendevt) {
   var tm2 = new GroundTerm(TouchFeature.TouchMove, sameid2);
   var tu2 = new GroundTerm(TouchFeature.TouchUp, sameid2);
   
-  var start = new Sequence([ td1, td2, new Choice([ new Parallel([ new Iter(tm1), new Iter(tm2) ]), tu1, tu2]) ]);
+  var start = new Sequence([ td1, new Choice([ new Sequence([td2, new Choice([ new Parallel([ new Iter(tm1), new Iter(tm2) ]), tu2])]), tu1, tout ]) ]);
   tm1.gesture.add(function (e) { pts[id1] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; trigger(); });
   tm2.gesture.add(function (e) { pts[id2] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; trigger(); });
 
   start.gesture.add(function (e) { id1 = null; id2 = null; pzendevt() });
-  return start;
+  return start.toGestureNet(sensor);
 }
-

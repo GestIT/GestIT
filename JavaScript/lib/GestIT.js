@@ -36,7 +36,7 @@ function GestureNet() {
     var o = this;
     var completionEvent = new Event();
     this.completion = completionEvent.publish;
-    this.completed = function (f, e, t) { completionEvent.trigger(o, { 'feature': f, 'evt': e, 'tokens': t}); };
+    this.completed = function (e) { completionEvent.trigger(o, e); };
     this.dispose = function () { o.clearTokens(); };
   }
   this.front = function () { return new Array(); };
@@ -93,7 +93,7 @@ function GroundTermNet(exp, sensor) {
     if (!exp.predicate || exp.predicate(event.event)) {
       var oldtokens = tokens;
       o.clearTokens();
-      o.completed(event.feature, event.event, oldtokens);
+      o.completed({ 'feature': event.feature, 'evt': event.event, 'tokens': oldtokens });
     }
   };
   this.front = function () { return [ o ]; };
@@ -221,7 +221,7 @@ function Choice(subexprs) {
       subnets[i].completion.add((function (n) { return function (e) {
         for (var i = 0; i < subnets.length; i++)
           if (i != n) subnets[i].removeTokens(e.tokens);
-        net.completed(e);
+        net.completed({ 'feature': e.feature, 'evt': e.evt, 'tokens': e.tokens });
       }})(i));
     };
     return net;
@@ -250,12 +250,14 @@ Iter.prototype = new GestureExpr();
 
 function FusionSensor()  {
   var events = new Array();
+  var freshfeature = 0;
   this.listen = function (obj, feature, event, filter) {
     var o = this;
     if (!o[feature])
       o[feature] = new Event();
     var r = { 'o': obj, 
               'en': event, 
+              'f': feature,
               'e': 
                 (!filter ? function (e) { o[feature].trigger(obj, { 'feature': feature, 'event': e }) } :
                           function (e) { 
@@ -267,6 +269,22 @@ function FusionSensor()  {
     events.push(r);
     obj.addEventListener(r.en, r.e, false);  
   };
+  
+  this.createFeature = function () {
+    return "_feature_#" + (freshfeature++);
+  };
+  
+  this.startTimeout = function (feature, event, duration) {
+    var o = this;
+    if (!o[feature])
+      o[feature] = new Event();
+    return setTimeout(function () {
+                         o[feature].trigger(o, { 'feature': feature, 'event': event });
+                       }, Math.floor(duration * 1000));
+  };
+  
+  this.clearTimeout = function (tok) { clearTimeout(tok); };
+  
   this.dispose = function () {
     for (var i = 0; i < events.length; i++) {
       var r = events[i];

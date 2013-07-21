@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="../lib/GestIT.js"></script>
+<script type="text/javascript" src="../lib/GestITouch.js"></script>
+<script type="text/javascript">
+var points = {};
+var timeout = null;
+
+var colors = [ 'red', 'black', 'orange', 'green', 'blue' ];
+var cw = 30;
+
+var initpz = null;
+var pz = null;
+
+var dm = null;
+var w2v = null;
+var v2w = null;
+
+function paint() {
+  var c = document.getElementById('canvas');
+  var ctx = c.getContext('2d');
+  if (dm == null) dm = w2v = v2w = ctx.currentTransform;
+//  ctx.currentTransform = dm;
+  ctx.clearRect(0, 0, c.width, c.height);
+//  ctx.currentTransform = w2v;
+  if (pz != null) {
+    var im = initpz.magnitude();
+    var m = pz.magnitude();
+    var z = 1 + (m - im) / (im * im);
+    ctx.scale(z, z);
+    ctx.rotate((initpz.angle() - pz.angle()) / 10);
+  }
+  var j = 0;
+  for (var k in points) {
+    var ps = points[k];
+    ctx.strokeStyle = colors[j++ % colors.length];
+    ctx.beginPath();
+    ctx.moveTo(ps[0].x, ps[0].y);
+    for (var i = 1; i < ps.length; i++) {
+      var p = ps[i];
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+}
+
+function draw() { if (!timeout) timeout = setTimeout('paint(); timeout = null', 10); }
+
+function init() {
+  var c = document.getElementById('canvas');
+  var adjustSize = function () {
+    var w = window.innerWidth - 30, h = window.innerHeight - 30;
+    c.style.width = w;
+    c.style.height = h;
+    c.width =  w
+    c.height = h;
+  }
+  adjustSize();
+  document.body.onresize = function () { adjustSize(); }
+  var ts = listenTouch(c);
+  var td = new GroundTerm(TouchFeature.TouchDown, function () { return true; });
+  td.gesture.add(function (e) { points[e.evt.identifier] = [{ x: e.evt.clientX, y: e.evt.clientY }]; draw(); });
+  var stoplist = [ -1, -1 ];
+  var net = multiseqnet(
+    td,
+    function (e) { return e.identifier; },
+    TouchFeature.TouchMove,
+    function (e) { points[e.evt.identifier].push({ x: e.evt.clientX, y: e.evt.clientY }); draw(); },
+    TouchFeature.TouchUp,
+    function (e) { delete points[e.evt.identifier]; draw(); },
+    ts,
+    stoplist
+  );
+  
+  var pznet = pinchAndZoom(function (e) { stoplist[0] = e.p1.id; stoplist[1] = e.p2.id; if (initpz == null) initpz = e; pz = e; draw(); }, 
+                           function (e) { stoplist[0] = -1; stoplist[1] = -1; initpz = pz = null; draw(); },
+                           ts);
+}
+
+</script>
+</head>
+<body onload="init()">
+<canvas id="canvas"></canvas>
+
+</body>
+</html>
