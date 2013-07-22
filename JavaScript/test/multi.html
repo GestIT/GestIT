@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="../lib/GestIT.js"></script>
+<script type="text/javascript" src="../lib/GestITouch.js"></script>
+<script type="text/javascript">
+function print(s) {
+  var console = document.getElementById('console');
+  console.innerHTML += s + '<br/>';
+  console.scrollTop = console.scrollHeight;
+}
+
+
+function init() {
+  var ts = listenTouch('canvas');
+  var td = new GroundTerm(TouchFeature.TouchDown, function () { return true; });
+  td.gesture.add(function (e) { print('Touch #' + e.evt.identifier + ' down @(' + (e.evt.screenX + ', ' + e.evt.screenY) + ')!'); });
+  var net = multiseqnet(
+    td,
+    function (e) { return e.identifier; },
+    TouchFeature.TouchMove,
+    function (e) { print('Touch #' + e.evt.identifier + ' move!'); },
+    TouchFeature.TouchUp,
+    function (e) { print('Touch #' + e.evt.identifier + ' up!'); },
+    ts
+  );
+}
+
+</script>
+</head>
+<body onload="init()">
+<div id="canvas" style="height: 500px; background: yellow"></div>
+<div id="console" style="height: 500px; background: black; color: white; overflow: auto"></div>
+
+</body>
+</html>
