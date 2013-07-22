@@ -1,10 +1,7 @@
 GestIT
 ======
 
-Look at demos available at:
-
-* [Javascript](http://gestit.github.io/GestIT)
-* [F#](http://www.tryfsharp.org/create/cisterni/GestIT/tutorial/DragAndDrop.fsx) on TryFsharp.org (Silverlight required)
+Look at demos on the project's [page](http://gestit.github.io/GestIT)!
 
 GestIT is an elegant library for reactive programming for .NET and Javascript. The origin of the library has its roots in defining a programming model for defining gestures by composition and moving forward from the current situation where framewoks give precooked gestures such as pinch and zoom. The library, however, can be used to orchestrate an arbitrary set of events in a very natural way.
 
