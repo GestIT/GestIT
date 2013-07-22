@@ -68,7 +68,7 @@ function listenTouch(element) {
   if (navigator.msMaxTouchPoints) {
     d.style.msTouchAction = 'none';
     var MShandler = function (e) { 
-      var ret = e.pointerType == 'touch' ? new TouchEvent() : null; 
+      var ret = e.pointerType == 'touch' || e.pointerType == 2 ? new TouchEvent() : null; // == 2 needed by winphone and (I guess IE < 11)
       if (ret) {
         e.preventDefault();
         ret.copyFromMSPointer(e);
