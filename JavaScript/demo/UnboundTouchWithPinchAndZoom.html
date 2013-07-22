@@ -71,8 +71,7 @@ function init() {
     },
     ts
   );
-  var pznet = pinchAndZoom(function (e) { pz = e; draw(); }, function (e) { pz = null; draw(); });
-  pznet.toGestureNet(ts);
+  var pznet = pinchAndZoom(function (e) { pz = e; draw(); }, function (e) { pz = null; draw(); }, ts);
 }
 
 </script>
