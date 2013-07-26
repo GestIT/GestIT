@@ -420,6 +420,7 @@ namespace LeapDriver
         let formatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()
         let mutable outputStream : System.IO.Stream = null
         let debugSensor = false
+        let leapEventReceived = new Event<LeapFeatureTypes*LeapEventArgs>()
 
         do
             ctrl.AddListener(this) |> ignore
@@ -434,6 +435,8 @@ namespace LeapDriver
             sensorEvents.Add(LeapFeatureTypes.NotActiveHand, new Event<LeapEventArgs>())
             sensorEvents.Add(LeapFeatureTypes.NotActiveTool, new Event<LeapEventArgs>())
 
+        member this.LeapEventReceived = leapEventReceived.Publish
+
         member this.OutputStream
             with get() = outputStream
             and set(v) = outputStream <- v
@@ -443,7 +446,8 @@ namespace LeapDriver
             member this.Item with get f = sensorEvents.[f].Publish
 
         member private this.MyTrigger t e =
-            if this.OutputStream <> null then formatter.Serialize(this.OutputStream, (System.DateTime.Now, t, e)) 
+            if this.OutputStream <> null then formatter.Serialize(this.OutputStream, (System.DateTime.Now, t, e))
+            leapEventReceived.Trigger(t, e)
             sensorEvents.[t].Trigger(e)
 
         override this.OnInit(c:Controller) =

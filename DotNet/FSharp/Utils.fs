@@ -68,5 +68,6 @@ let (|->) (a:GestureExpr<'T, 'U>) (evt:GestureExpr<'T, 'U>*'T*'U -> unit) =
 type FusionSensor<'T,'U> when 'T : equality and 'U :> System.EventArgs () =
   let items = new System.Collections.Generic.Dictionary<_,_>()
   member this.Listen(f:'T, e:IEvent<'U>) = items.Add(f, e)
+  member this.Listen(f:'T, e:IEvent<_, 'U>) = items.Add(f, e |> Event.map (fun e -> e)) // FIXME: this should be done otherwise in IEvent probably
   interface ISensor<'T,'U> with
     member this.Item with get f = items.[f]

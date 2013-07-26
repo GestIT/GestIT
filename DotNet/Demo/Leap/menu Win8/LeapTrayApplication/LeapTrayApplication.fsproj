@@ -10,7 +10,7 @@
     <RootNamespace>LeapTrayApplication</RootNamespace>
     <AssemblyName>LeapTrayApplication</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <Name>LeapTrayApplication - menu Win8</Name>
+    <Name>LeapTrayApplication</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -38,20 +38,50 @@
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Playback Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <Tailcalls>false</Tailcalls>
+    <DefineConstants>TRACE;DEBUG;PLAYBACK;</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DocumentationFile>bin\Debug\LeapTrayApplication.XML</DocumentationFile>
+    <Prefer32Bit>true</Prefer32Bit>
+    <OutputPath>bin\Playback Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Record Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <Tailcalls>false</Tailcalls>
+    <DefineConstants>TRACE;DEBUG;RECORD;</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DocumentationFile>bin\Debug\LeapTrayApplication.XML</DocumentationFile>
+    <Prefer32Bit>true</Prefer32Bit>
+    <OutputPath>bin\Record Debug\</OutputPath>
+  </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
   <ItemGroup>
     <None Include="App.config" />
-    <Compile Include="MenuWin.fs" />
+    <Compile Include="LeapTrayApplication.fs" />
+    <None Include="LeapCSharp.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Leapd.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Leap.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="GestIT">
       <HintPath>..\..\..\..\Driver\LeapDriver\bin\Debug\GestIT.dll</HintPath>
     </Reference>
     <Reference Include="LeapCSharp.NET3.5">
-      <HintPath>..\..\..\..\Driver\LeapDriver\bin\Debug\LeapCSharp.NET3.5.dll</HintPath>
-    </Reference>
-    <Reference Include="LeapDriver">
-      <HintPath>..\..\..\..\Driver\LeapDriver\bin\Debug\LeapDriver.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\..\Desktop\Leap\LeapSDK\lib\LeapCSharp.NET3.5.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
@@ -60,8 +90,17 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Driver\LeapDriver\LeapDriver.fsproj">
+      <Name>LeapDriver</Name>
+      <Project>{480058eb-44e6-4ba1-a7fa-facdfd1d2400}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
