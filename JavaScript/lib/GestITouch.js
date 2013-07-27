@@ -63,39 +63,47 @@ var TouchFeature = {
 }
 
 function listenTouch(element) {
+  var maxid = 0;
+  var idmap = {};
   var d = typeof(element) == 'string' ? document.getElementById(element) : element;
   var ret = new FusionSensor();
   if (navigator.msMaxTouchPoints) {
     d.style.msTouchAction = 'none';
-    var MShandler = function (e) { 
+    var MShandler = function (f) { return function (e) { 
       var ret = e.pointerType == 'touch' || e.pointerType == 2 ? new TouchEvent() : null; // == 2 needed by winphone and (I guess IE < 11)
       if (ret) {
         e.preventDefault();
         ret.copyFromMSPointer(e);
+        if (f == TouchFeature.TouchDown) idmap[ret.identifier] = maxid++;
+        ret.identifier = idmap[ret.identifier];
+        if (f == TouchFeature.TouchUp) delete idmap[ret.identifier];
         return [ ret ];
       }
       return [];
-    };
-    ret.listen(d, TouchFeature.TouchDown, 'MSPointerDown', MShandler);
-    ret.listen(d, TouchFeature.TouchMove, 'MSPointerMove', MShandler);
-    ret.listen(d, TouchFeature.TouchUp, 'MSPointerUp', MShandler);
+    }; };
+    ret.listen(d, TouchFeature.TouchDown, 'MSPointerDown', MShandler(TouchFeature.TouchDown));
+    ret.listen(d, TouchFeature.TouchMove, 'MSPointerMove', MShandler(TouchFeature.TouchMove));
+    ret.listen(d, TouchFeature.TouchUp, 'MSPointerUp', MShandler(TouchFeature.TouchUp));
     d.addEventListener('MSHoldVisual', function (event) {
         event.preventDefault();
     });
   } else {
-    var THandler = function (e) { 
+    var THandler = function (f) { return function (e) { 
       var ret = []; 
       e.preventDefault();
       for (var i = 0; i < e.changedTouches.length; i++) {
         var t = new TouchEvent();
         t.copyFromTouch(e, e.changedTouches[i]);
+        if (f == TouchFeature.TouchDown) idmap[t.identifier] = maxid++;
+        t.identifier = idmap[t.identifier];
+        if (f == TouchFeature.TouchUp) delete idmap[t.identifier];
         ret.push(t);
       }
       return ret;
-    };
-    ret.listen(d, TouchFeature.TouchDown, 'touchstart', THandler);
-    ret.listen(d, TouchFeature.TouchMove, 'touchmove', THandler);
-    ret.listen(d, TouchFeature.TouchUp, 'touchend', THandler);
+    }; };
+    ret.listen(d, TouchFeature.TouchDown, 'touchstart', THandler(TouchFeature.TouchDown));
+    ret.listen(d, TouchFeature.TouchMove, 'touchmove', THandler(TouchFeature.TouchMove));
+    ret.listen(d, TouchFeature.TouchUp, 'touchend', THandler(TouchFeature.TouchUp));
   }
   d.addEventListener('contextmenu', function (event) {
         event.preventDefault();
