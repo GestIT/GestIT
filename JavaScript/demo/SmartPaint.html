@@ -36,6 +36,8 @@ function Matrix(a, b, c, d, e, f) {
     return { 'x': this.a * x + this.c * y + this.e, 'y': this.b * x + this.d * y + this.f }; }; 
 }
 
+var identity = new Matrix();
+
 function createTranslateMatrix(tx, ty) { return new Matrix(1, 0, 0, 1, tx, ty); }
 function createScaleMatrix(sx, sy) { return new Matrix(sx, 0, 0, sy, 0, 0); }
 function createRotateMatrix(alpha) { return new Matrix(Math.cos(alpha), Math.sin(alpha), -Math.sin(alpha), Math.cos(alpha), 0, 0); }
@@ -99,6 +101,7 @@ function updatePinchZoom() {
 function paint() {
   var c = document.getElementById('canvas');
   var ctx = c.getContext('2d');
+  identity.transform(ctx);
   ctx.clearRect(0, 0, c.width, c.height);
   W.w2v.transform(ctx);
   var j = 0;
