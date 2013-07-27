@@ -81,11 +81,20 @@ function WorldTransform() {
   this.scale = function (sx, sy) { this.transform(createScaleMatrix(sx, sy), createScaleMatrix(1/sx, 1/sy)); };
 }
 
+var lastseen = {};
+
 var W = new WorldTransform();
 
 function deg2rad(a) { return (a / 180) * Math.PI; }
 
 function updatePinchZoom() {
+    for (var id in lastseen) {
+      var pts = points[id];
+      var vp1 = lastseen[id];
+      var vp2 = W.w2v.transformPoint(pts[pts.length - 1]);
+      if (distsqr(vp1, vp2) > 9)
+        pts.push(W.v2w.transformPoint(vp1));
+    }
     var im = initpz.magnitude();
     var m = pz.magnitude();
     var px = pz.p1.x + (pz.p2.x - pz.p1.x) / 2
@@ -107,7 +116,7 @@ function paint() {
   var j = 0;
   for (var k in points) {
     var ps = points[k];
-    ctx.strokeStyle = colors[j++ % colors.length];
+    ctx.strokeStyle = colors[parseInt(k) % colors.length];
     ctx.beginPath();
     for (var i = 1; i < ps.length; i++) {
       var p = ps[i];
@@ -118,6 +127,8 @@ function paint() {
 }
 
 function draw() { if (!timeout) timeout = setTimeout('paint(); timeout = null', 10); }
+
+function distsqr(p1, p2) { return (p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y); }
 
 function init() {
   var c = document.getElementById('canvas');
@@ -132,15 +143,30 @@ function init() {
   document.body.onresize = function () { adjustSize(); }
   var ts = listenTouch(c);
   var td = new GroundTerm(TouchFeature.TouchDown, function () { return true; });
-  td.gesture.add(function (e) { points[e.evt.identifier] = [W.v2w.transformPoint(e.evt.clientX, e.evt.clientY)]; draw(); });
+  td.gesture.add(function (e) {
+    lastseen[e.evt.identifier] = { 'x': e.evt.clientX, 'y': e.evt.clientY };
+    points[e.evt.identifier] = [W.v2w.transformPoint(e.evt.clientX, e.evt.clientY)]; draw(); 
+  });
   var stoplist = [ -1, -1 ];
   var net = multiseqnet(
     td,
     function (e) { return e.identifier; },
     TouchFeature.TouchMove,
-    function (e) { points[e.evt.identifier].push(W.v2w.transformPoint(e.evt.clientX, e.evt.clientY)); draw(); },
+    function (e) {
+      var p = { 'x': e.evt.clientX, 'y': e.evt.clientY };
+      var tp = W.v2w.transformPoint(p.x, p.y);
+      var pts = points[e.evt.identifier];
+      var lastp = W.w2v.transformPoint(pts[pts.length - 1].x, pts[pts.length - 1].y);
+      lastseen[e.evt.identifier] = p;
+      if (distsqr(p, lastp) > 9) {
+        pts.push(tp); draw(); 
+      }
+    },
     TouchFeature.TouchUp,
-    function (e) { /* delete points[e.evt.identifier]; */ draw(); },
+    function (e) { 
+      var id = e.evt.identifier;
+      delete lastseen[id];
+      draw(); },
     ts,
     stoplist
   );
