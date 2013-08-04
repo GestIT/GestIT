@@ -137,7 +137,7 @@ function multiseqnet(startterm, extractid, iterfeature, itercomplete, stopfeatur
 
 var clearPinchAndZoom = null;
 
-function pinchAndZoom(pzevt, pzendevt, sensor, timeout, stopprocessing) {
+function pinchAndZoom(pzevt, pzendevt, sensor, timeout) {
   var id1 = null, id2 = null;
   var td1 = new GroundTerm(TouchFeature.TouchDown, function () { return id1 == null; });
   var td2 = new GroundTerm(TouchFeature.TouchDown, function () { return id1 != null && id2 == null; });
@@ -153,8 +153,9 @@ function pinchAndZoom(pzevt, pzendevt, sensor, timeout, stopprocessing) {
                     ttok = sensor.startTimeout('Timer', e, timeout ? timeout : 0.5); 
                   });
   td2.gesture.add(function (e) { if (ttok) sensor.clearTimeout(ttok); id2 = e.evt.identifier; pts[id2] = { x: e.evt.clientX, y: e.evt.clientY }; });
-    
+  var triggered = false;
   var trigger = function () {
+    triggered = true;
     var e = {
       p1: pts[id1],
       p2: pts[id2],
@@ -181,22 +182,14 @@ function pinchAndZoom(pzevt, pzendevt, sensor, timeout, stopprocessing) {
   
   var start = new Sequence([ td1, new Choice([ new Sequence([td2, new Choice([ new Parallel([ new Iter(tm1), new Iter(tm2) ]), tu2])]), tu1, tout ]) ]);
   tm1.gesture.add(function (e) {
-    if (stopprocessing) {
-      e.evt.srcEvent.stopImmediatePropagation();
-      e.evt.srcEvent.stopPropagation();
-    }
     pts[id1] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; 
     trigger(); 
   });
   tm2.gesture.add(function (e) { 
-    if (stopprocessing) {
-      e.evt.srcEvent.stopImmediatePropagation();
-      e.evt.srcEvent.stopPropagation();
-    }
     pts[id2] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier };
     trigger(); 
   });
 
-  start.gesture.add(function (e) { id1 = null; id2 = null; pzendevt() });
+  start.gesture.add(function (e) { id1 = null; id2 = null; if (triggered) pzendevt(); triggered = false; });
   return start.toGestureNet(sensor);
 }
