@@ -36,6 +36,7 @@ function TouchEvent() {
   }
   
   this.copyFromMSPointer = function (event) {
+    this.srcEvent = event;
     this.copyMods(event);
     this.copyCommon(event);
     this.identifier = event.pointerId;
@@ -46,6 +47,7 @@ function TouchEvent() {
   };
   
   this.copyFromTouch = function (parentevent, touchevent) {
+    this.srcEvent = parentevent;
     this.copyMods(parentevent);
     this.copyCommon(touchevent);
     this.identifier = touchevent.identifier;
@@ -62,7 +64,7 @@ var TouchFeature = {
   TouchUp: 2
 }
 
-function listenTouch(element) {
+function listenTouch(element, capturing) {
   var maxid = 0;
   var idmap = {};
   var d = typeof(element) == 'string' ? document.getElementById(element) : element;
@@ -81,9 +83,9 @@ function listenTouch(element) {
       }
       return [];
     }; };
-    ret.listen(d, TouchFeature.TouchDown, 'MSPointerDown', MShandler(TouchFeature.TouchDown));
-    ret.listen(d, TouchFeature.TouchMove, 'MSPointerMove', MShandler(TouchFeature.TouchMove));
-    ret.listen(d, TouchFeature.TouchUp, 'MSPointerUp', MShandler(TouchFeature.TouchUp));
+    ret.listen(d, TouchFeature.TouchDown, 'MSPointerDown', capturing ? true : false, MShandler(TouchFeature.TouchDown));
+    ret.listen(d, TouchFeature.TouchMove, 'MSPointerMove', capturing ? true : false, MShandler(TouchFeature.TouchMove));
+    ret.listen(d, TouchFeature.TouchUp, 'MSPointerUp', capturing ? true : false, MShandler(TouchFeature.TouchUp));
     d.addEventListener('MSHoldVisual', function (event) {
         event.preventDefault();
     });
@@ -101,9 +103,9 @@ function listenTouch(element) {
       }
       return ret;
     }; };
-    ret.listen(d, TouchFeature.TouchDown, 'touchstart', THandler(TouchFeature.TouchDown));
-    ret.listen(d, TouchFeature.TouchMove, 'touchmove', THandler(TouchFeature.TouchMove));
-    ret.listen(d, TouchFeature.TouchUp, 'touchend', THandler(TouchFeature.TouchUp));
+    ret.listen(d, TouchFeature.TouchDown, 'touchstart', capturing ? true : false, THandler(TouchFeature.TouchDown));
+    ret.listen(d, TouchFeature.TouchMove, 'touchmove', capturing ? true : false, THandler(TouchFeature.TouchMove));
+    ret.listen(d, TouchFeature.TouchUp, 'touchend', capturing ? true : false, THandler(TouchFeature.TouchUp));
   }
   d.addEventListener('contextmenu', function (event) {
         event.preventDefault();
@@ -135,7 +137,7 @@ function multiseqnet(startterm, extractid, iterfeature, itercomplete, stopfeatur
 
 var clearPinchAndZoom = null;
 
-function pinchAndZoom(pzevt, pzendevt, sensor, timeout) {
+function pinchAndZoom(pzevt, pzendevt, sensor, timeout, stopprocessing) {
   var id1 = null, id2 = null;
   var td1 = new GroundTerm(TouchFeature.TouchDown, function () { return id1 == null; });
   var td2 = new GroundTerm(TouchFeature.TouchDown, function () { return id1 != null && id2 == null; });
@@ -178,8 +180,22 @@ function pinchAndZoom(pzevt, pzendevt, sensor, timeout) {
   var tu2 = new GroundTerm(TouchFeature.TouchUp, sameid2);
   
   var start = new Sequence([ td1, new Choice([ new Sequence([td2, new Choice([ new Parallel([ new Iter(tm1), new Iter(tm2) ]), tu2])]), tu1, tout ]) ]);
-  tm1.gesture.add(function (e) { pts[id1] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; trigger(); });
-  tm2.gesture.add(function (e) { pts[id2] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; trigger(); });
+  tm1.gesture.add(function (e) {
+    if (stopprocessing) {
+      e.evt.srcEvent.stopImmediatePropagation();
+      e.evt.srcEvent.stopPropagation();
+    }
+    pts[id1] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier }; 
+    trigger(); 
+  });
+  tm2.gesture.add(function (e) { 
+    if (stopprocessing) {
+      e.evt.srcEvent.stopImmediatePropagation();
+      e.evt.srcEvent.stopPropagation();
+    }
+    pts[id2] = { x: e.evt.clientX, y: e.evt.clientY, id: e.evt.identifier };
+    trigger(); 
+  });
 
   start.gesture.add(function (e) { id1 = null; id2 = null; pzendevt() });
   return start.toGestureNet(sensor);

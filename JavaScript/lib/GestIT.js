@@ -251,7 +251,7 @@ Iter.prototype = new GestureExpr();
 function FusionSensor()  {
   var events = new Array();
   var freshfeature = 0;
-  this.listen = function (obj, feature, event, filter) {
+  this.listen = function (obj, feature, event, capturing, filter) {
     var o = this;
     if (!o[feature])
       o[feature] = new Event();
@@ -267,7 +267,7 @@ function FusionSensor()  {
                             }})
               };
     events.push(r);
-    obj.addEventListener(r.en, r.e, false);  
+    obj.addEventListener(r.en, r.e, capturing ? true : false);  
   };
   
   this.createFeature = function () {
