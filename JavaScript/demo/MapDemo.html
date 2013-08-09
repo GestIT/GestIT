@@ -2,8 +2,8 @@
 <html>
 <head>
 <script src="http://api.maps.nokia.com/2.2.4/jsl.js" type="text/javascript" charset="utf-8"></script>
-<script type="text/javascript" src="http://gestit.github.io/GestIT/JavaScript/lib/GestIT.js"></script>
-<script type="text/javascript" src="http://gestit.github.io/GestIT/JavaScript/lib/GestITouch.js"></script>
+<script type="text/javascript" src="../lib/GestIT.js"></script>
+<script type="text/javascript" src="../lib/GestITouch.js"></script>
 
 <script type="text/javascript">
 nokia.Settings.set("appId", "luZTELUcbIMUf5D6Nj6a"); 
@@ -52,6 +52,80 @@ function prova() {
   var mid = null;
   var lastmid = null;
   var W = null;
+  
+  var df = null;
+  
+  ts.listen(mc, 'MouseDown', 'mousedown', true);
+  ts.listen(mc, 'MouseMove', 'mousemove');
+  ts.listen(mc, 'MouseUp', 'mouseup');
+  
+  ts.defineFeature('DragStart'); // required since these are synth events
+  ts.defineFeature('DragMove'); // required since these are synth events
+  ts.defineFeature('DragStop'); // required since these are synth events
+  
+  var fx, fy, dx, dy;
+  var kinetic = null;
+
+  var dstart = new GroundTerm('DragStart', function () { return true; });
+  var dmove = new GroundTerm('DragMove', function () { return true; });
+  var dstop = new GroundTerm('DragStop', function () { return true; });  
+  dstart.gesture.add(function (e) { 
+    fx = e.evt.x; fy = e.evt.y;
+    dx = 0; dy = 0;
+    if (kinetic != null) {
+      clearTimeout(kinetic);
+      kinetic = null;
+    }
+  });
+  dmove.gesture.add(function (e) { 
+    dx = 0.5 * dx + 0.5 * (e.evt.x - fx); dy = 0.5 * dy + 0.5 * (e.evt.y - fy);
+    map.pan(e.evt.x, e.evt.y, fx, fy); 
+    fx = e.evt.x;
+    fy = e.evt.y; 
+  });
+  dstop.gesture.add(function (e) {
+    var idx = dx, idy = dy;
+    var t = 0;
+    var anim = function () {
+      map.pan(fx + dx, fy + dy, fx, fy); 
+      fx += dx;
+      fy += dy;
+      t += 1;
+      dx = idx * Math.exp(-t/10);
+      dy = idy * Math.exp(-t/10);
+      if (Math.abs(dx) < 2) dx = 0;
+      if (Math.abs(dx) < 2) dy = 0;
+      if (dx || dy)
+        kinetic = setTimeout(anim, 30);
+    };
+    anim();
+  });
+  var drag = new Sequence([dstart, new Choice([ new Iter(dmove), dstop ]) ]);
+  drag.toGestureNet(ts);
+  
+  
+  var md = new GroundTerm('MouseDown', function () { return true; });
+  var mm = new GroundTerm('MouseMove', function () { return true; });
+  var mu = new GroundTerm('MouseUp', function () { return true; });
+  md.gesture.add(function (e) { 
+    e.evt.stopPropagation();
+    ts.trigger('DragStart', { 'x': e.evt.clientX, 'y': e.evt.clientY }); });
+  mm.gesture.add(function (e) { ts.trigger('DragMove', { 'x': e.evt.clientX, 'y': e.evt.clientY }); });
+  mu.gesture.add(function (e) { ts.trigger('DragStop', { 'x': e.evt.clientX, 'y': e.evt.clientY }); });
+  var mdrag = new Sequence([md, new Choice([ new Iter(mm), mu ]) ]);
+  mdrag.toGestureNet(ts);
+    
+  
+  var pand = new GroundTerm(TouchFeature.TouchDown, function () { return df == null; });
+  var panm = new GroundTerm(TouchFeature.TouchMove, function (e) { return e.identifier == df; });
+  var panu = new GroundTerm(TouchFeature.TouchUp, function (e) { return e.identifier == df; });
+  pand.gesture.add(function (e) { 
+    ts.trigger('DragStart', { 'x': e.evt.clientX, 'y': e.evt.clientY }); df = e.evt.identifier; });
+  panm.gesture.add(function (e) { ts.trigger('DragMove', { 'x': e.evt.clientX, 'y': e.evt.clientY }); });
+  panu.gesture.add(function (e) { ts.trigger('DragStop', { 'x': e.evt.clientX, 'y': e.evt.clientY }); df = null; });
+  var pan = new Sequence([pand, new Choice([ new Iter(panm), panu ]) ]);
+  pan.toGestureNet(ts);
+  
   
   pinchAndZoom(
     function (e) {
