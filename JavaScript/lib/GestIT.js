@@ -274,13 +274,23 @@ function FusionSensor()  {
     return "_feature_#" + (freshfeature++);
   };
   
+  this.defineFeature = function (feature) {
+    if (!this[feature])
+      this[feature] = new Event();
+  }
+  
+  this.trigger = function (feature, event) {
+    var o = this;
+    if (!o[feature])
+      o[feature] = new Event();
+    o[feature].trigger(o, { 'feature': feature, 'event': event });
+  };
+
   this.startTimeout = function (feature, event, duration) {
     var o = this;
     if (!o[feature])
       o[feature] = new Event();
-    return setTimeout(function () {
-                         o[feature].trigger(o, { 'feature': feature, 'event': event });
-                       }, Math.floor(duration * 1000));
+    return setTimeout(function () { o.trigger(feature, event); }, Math.floor(duration * 1000));
   };
   
   this.clearTimeout = function (tok) { clearTimeout(tok); };
