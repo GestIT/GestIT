@@ -1,7 +1,6 @@
 <!doctype html>
 <html>
 <head>
-<title>Here maps controlled by GestIT</title>
 <script src="http://api.maps.nokia.com/2.2.4/jsl.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript" src="../lib/GestIT.js"></script>
 <script type="text/javascript" src="../lib/GestITouch.js"></script>
@@ -112,7 +111,7 @@ function prova() {
   var drag = new Sequence([dstart, new Choice([ new Iter(dmove), dstop ]) ]);
   drag.toGestureNet(ts);
   
-  
+  // Mouse panning
   var md = new GroundTerm('MouseDown', function () { return true; });
   var mm = new GroundTerm('MouseMove', function () { return true; });
   var mu = new GroundTerm('MouseUp', function () { return true; });
@@ -122,9 +121,28 @@ function prova() {
   mm.gesture.add(function (e) { ts.trigger('DragMove', { 'x': e.evt.clientX, 'y': e.evt.clientY }); });
   mu.gesture.add(function (e) { ts.trigger('DragStop', { 'x': e.evt.clientX, 'y': e.evt.clientY }); });
   var mdrag = new Sequence([md, new Choice([ new Iter(mm), mu ]) ]);
-  mdrag.toGestureNet(ts);
-    
+  mdrag.toGestureNet(ts);    
+
+  // Mouse doubleclick
+  ts.defineFeature('DblClkTimeout'); // required since these are synth events
+  var mdclk1 = new GroundTerm('MouseDown', function() { return true; });  
+  var mdclk2 = new GroundTerm('MouseDown', function() { return true; });  
+  var muclk1 = new GroundTerm('MouseUp', function() { return true; });
+  var muclk2 = new GroundTerm('MouseUp', function() { return true; });
+  var dctout = new GroundTerm('DblClkTimeout', function() { return true; });
+  mdclk1.gesture.add(function (e) {
+    ts.startTimeout('DblClkTimeout', e, 0.3);
+  });
+  var mdblclk = new Choice([ new Sequence([ mdclk1, muclk1, mdclk2, muclk2 ]), dctout ]);
+  muclk2.gesture.add(function (e) {
+    var center = map.geoToPixel(map.center);
+    map.pan(center.x, center.y, e.evt.clientX, e.evt.clientY);
+    map.setZoomLevel(map.zoomLevel + 1);
+    map.update(10); 
+  });
+  mdblclk.toGestureNet(ts);
   
+  // Touch panning
   var pand = new GroundTerm(TouchFeature.TouchDown, function () { return df == null; });
   var panm = new GroundTerm(TouchFeature.TouchMove, function (e) { return e.identifier == df; });
   var panu = new GroundTerm(TouchFeature.TouchUp, function (e) { return e.identifier == df; });
@@ -134,6 +152,26 @@ function prova() {
   panu.gesture.add(function (e) { ts.trigger('DragStop', { 'x': e.evt.clientX, 'y': e.evt.clientY }); df = null; });
   var pan = new Sequence([pand, new Choice([ new Iter(panm), panu ]) ]);
   pan.toGestureNet(ts);
+  
+
+  // Touch doubletap
+  ts.defineFeature('DblTapTimeout'); // required since these are synth events
+  var td1 = new GroundTerm(TouchFeature.TouchDown, function() { return true; });  
+  var td2 = new GroundTerm(TouchFeature.TouchDown, function() { return true; });  
+  var tu1 = new GroundTerm(TouchFeature.TouchUp, function() { return true; });
+  var tu2 = new GroundTerm(TouchFeature.TouchUp, function() { return true; });
+  var dttout = new GroundTerm('DblTapTimeout', function() { return true; });
+  td1.gesture.add(function (e) {
+    ts.startTimeout('DblTapTimeout', e, 0.3);
+  });
+  var dbltap = new Choice([ new Sequence([ td1, tu1, td2, tu2 ]), dttout ]);
+  tu2.gesture.add(function (e) {
+    var center = map.geoToPixel(map.center);
+    map.pan(center.x, center.y, e.evt.clientX, e.evt.clientY);
+    map.setZoomLevel(map.zoomLevel + 1);
+    map.update(10); 
+  });
+  dbltap.toGestureNet(ts);
   
   
   pinchAndZoom(
